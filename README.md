@@ -230,3 +230,42 @@ Para trabajar con los mismos datos, se documentarán la fuente, la fecha de desc
 - Utilizar rutas relativas al proyecto.
 - Guardar las decisiones metodológicas en `docs/`.
 - Mantener actualizado este README cuando cambie la instalación o la ejecución.
+## Preparar los datos
+
+Los CSV no se incluyen en GitHub. Para reproducir la preparación,
+coloca estos dos archivos originales en `datos/originales/`:
+
+- `paro_edad_municipio.csv`
+- `contratos_municipio.csv`
+
+Las páginas de origen están documentadas en `docs/fuentes_datos.md`.
+
+Desde la carpeta principal del proyecto, ejecuta en PowerShell:
+
+```powershell
+.\.venv\Scripts\python.exe .\src\comprobar_datos.py
+.\.venv\Scripts\python.exe .\src\preparar_datos.py
+```
+
+El primer script genera informes en `resultados/`.
+El segundo genera estas tablas en `datos/procesados/`:
+
+| Archivo | Contenido |
+|---|---|
+| paro_edad_mensual.csv | Paro mensual por municipio y grupo de edad |
+| paro_total_mensual.csv | Suma mensual de los tres grupos de edad por municipio |
+| contratos_mensuales.csv | Recuento mensual de contratos por municipio |
+
+Los CSV generados utilizan separador `;` y codificación `utf-8-sig`.
+La columna `fecha` identifica el mes mediante su primer día.
+
+La copia descargada el 18/11/2026 contiene 179 municipios y
+262 meses, desde enero de 2005 hasta octubre de 2026.
+
+Se excluyen las medias anuales y las tasas publicadas.
+Los archivos originales se conservan sin modificar.
+
+Los nombres municipales de paro y contratos todavía no están
+armonizados: no cruzar ambas tablas directamente por nombre.
+El paro total calculado aún está pendiente de contraste con
+una fuente independiente de totales oficiales.
