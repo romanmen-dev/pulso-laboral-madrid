@@ -221,3 +221,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+datos/originales/*
+!datos/originales/.gitkeep
+
+datos/procesados/*
+!datos/procesados/.gitkeep
