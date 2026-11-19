@@ -75,6 +75,23 @@ MESES_CORTOS = [
     "jul", "ago", "sep", "oct", "nov", "dic",
 ]
 
+# Incidencias de los contratos en la fuente, documentadas en
+# docs/decisiones.md (19/11/2026) y docs/fuentes_datos.md. Los datos no
+# se corrigen: la ficha solo avisa cuando el gráfico incluye meses afectados.
+MES_CONTRATOS_ANOMALO = pd.Timestamp("2026-05-01")
+AVISO_CONTRATOS_MES_ANOMALO = (
+    "Los contratos de mayo de 2026 son menos de la mitad que los de abril y "
+    "junio en casi todos los municipios; el dato está así en la fuente y no "
+    "se ha corregido."
+)
+
+MUNICIPIO_CONTRATOS_REPETIDOS = "Velilla de San Antonio"
+INICIO_CONTRATOS_REPETIDOS = pd.Timestamp("2025-09-01")
+AVISO_CONTRATOS_REPETIDOS = (
+    "La fuente repite 368 contratos todos los meses desde septiembre de "
+    "2025; puede que no refleje la contratación real."
+)
+
 
 # ---------------------------------------------------------------
 # Archivos
@@ -299,6 +316,23 @@ def contratos_municipio(contratos, municipio, fecha, meses=24):
         contratos["municipio"].eq(municipio) & contratos["fecha"].le(fecha)
     ].sort_values("fecha")
     return serie.tail(meses)
+
+
+def avisos_contratos(municipio, serie_contratos):
+    """Avisos de incidencias de la fuente que afectan a los meses del gráfico."""
+    fechas = serie_contratos["fecha"]
+    avisos = []
+
+    if fechas.eq(MES_CONTRATOS_ANOMALO).any():
+        avisos.append(AVISO_CONTRATOS_MES_ANOMALO)
+
+    if (
+        municipio == MUNICIPIO_CONTRATOS_REPETIDOS
+        and fechas.ge(INICIO_CONTRATOS_REPETIDOS).any()
+    ):
+        avisos.append(AVISO_CONTRATOS_REPETIDOS)
+
+    return avisos
 
 
 def tabla_datos_ficha(serie, contratos):

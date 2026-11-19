@@ -387,6 +387,8 @@ def ficha(alertas, fecha, municipio, paro_edad, contratos, paleta):
     else:
         serie_contratos = datos.contratos_municipio(contratos, municipio, fecha, MESES_FICHA)
         grafico(graficos.figura_contratos(serie_contratos, fecha, paleta))
+        for aviso in datos.avisos_contratos(municipio, serie_contratos):
+            st.info(aviso, icon=":material/info:")
         st.caption(
             "Contratos de trabajo registrados en el municipio cada mes. Se "
             "muestran como contexto: no intervienen en el detector."
