@@ -16,6 +16,8 @@ al otro.
 - Ruta: `resultados/alertas.csv`. La genera `src/detectar_alertas.py`
   a partir de `datos/procesados/`. No se versiona en Git.
 - Separador `;`, codificación `utf-8-sig`, punto decimal y sin índice.
+- Los decimales se guardan con precisión completa. La aplicación los
+  redondea al mostrarlos.
 - Una fila por municipio y mes, haya alerta o no, incluidos los meses
   que no se pueden evaluar. Clave única: `municipio` + `fecha`.
 - Una celda vacía significa «no definido». Nunca se rellena con 0.

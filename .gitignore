@@ -226,3 +226,5 @@ datos/originales/*
 
 datos/procesados/*
 !datos/procesados/.gitkeep
+
+resultados/alertas.csv
