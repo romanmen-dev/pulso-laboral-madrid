@@ -1,0 +1,24 @@
+[
+  {
+    "archivo": "paro_edad_municipio.csv",
+    "url_solicitada": "https://datos.comunidad.madrid/catalogo/dataset/270edb5a-6788-41d5-ab8a-551c9daead0a/resource/c2be6e03-4915-41ab-9b5e-6ce66602c718/download/extraccionesmovimiento-laboral-registrado.-paro-registrado-por-edad-y-municipio.-comunidad-de-ma.csv",
+    "sha256_esperado": "0d14f265a8d5f9abb76b158f89c2dae983133a033d51bde25d6fce29087be8e2",
+    "inicio_utc": "2026-11-19T09:22:17.583405+00:00",
+    "descarga_completada_utc": "2026-11-19T09:22:19.257494+00:00",
+    "url_final": "https://datos.comunidad.madrid/dataset/270edb5a-6788-41d5-ab8a-551c9daead0a/resource/c2be6e03-4915-41ab-9b5e-6ce66602c718/download/extraccionesmovimiento-laboral-registrado.-paro-registrado-por-edad-y-municipio.-comunidad-de-ma.csv",
+    "bytes": 11154323,
+    "sha256_descargado": "0d14f265a8d5f9abb76b158f89c2dae983133a033d51bde25d6fce29087be8e2",
+    "estado": "verificado_original_existente"
+  },
+  {
+    "archivo": "contratos_municipio.csv",
+    "url_solicitada": "https://datos.comunidad.madrid/catalogo/dataset/19900d46-e62b-4ab1-a65e-ea0fb83bfdcb/resource/8b41acdd-cb88-404d-8767-e99b2cecc431/download/extraccionesmovimiento-laboral-registrado.-contratos-de-trabajo-por-municipio.-comunidad-de-madr.csv",
+    "sha256_esperado": "a3ecd519dfe302e2c1da96b54c9ea8e1e4581b4ea369a1581357f2761be66866",
+    "inicio_utc": "2026-11-19T09:22:19.273600+00:00",
+    "descarga_completada_utc": "2026-11-19T09:22:20.852074+00:00",
+    "url_final": "https://datos.comunidad.madrid/dataset/19900d46-e62b-4ab1-a65e-ea0fb83bfdcb/resource/8b41acdd-cb88-404d-8767-e99b2cecc431/download/extraccionesmovimiento-laboral-registrado.-contratos-de-trabajo-por-municipio.-comunidad-de-madr.csv",
+    "bytes": 15054131,
+    "sha256_descargado": "a3ecd519dfe302e2c1da96b54c9ea8e1e4581b4ea369a1581357f2761be66866",
+    "estado": "verificado_original_existente"
+  }
+]
