@@ -265,7 +265,9 @@ La copia descargada el 18/11/2026 contiene 179 municipios y
 Se excluyen las medias anuales y las tasas publicadas.
 Los archivos originales se conservan sin modificar.
 
-Los nombres municipales de paro y contratos todavía no están
-armonizados: no cruzar ambas tablas directamente por nombre.
+`preparar_datos.py` armoniza los nombres de contratos con los de paro
+(6 equivalencias) y comprueba que ambos conjuntos de municipios coinciden,
+así que las dos tablas se pueden cruzar por `municipio`.
+
 El paro total calculado aún está pendiente de contraste con
 una fuente independiente de totales oficiales.

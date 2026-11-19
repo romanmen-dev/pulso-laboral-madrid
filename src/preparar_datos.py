@@ -13,6 +13,16 @@ EDADES = {
     "Mayor de 44 años",
 }
 
+# Nombres de contratos que se traducen a los de paro, que es la serie principal.
+NOMBRES_CONTRATOS_A_PARO = {
+    "Berzosa del Lozoya": "Berzosa de Lozoya",
+    "Fuente el Saz de Jarama": "Fuente el Saz del Jarama",
+    "Horcajo de la Sierra": "Horcajo de la Sierra-Aoslos",
+    "Mejorada del campo": "Mejorada del Campo",
+    "Navarredonda": "Navaredonda",
+    "San Lorenzo del Escorial": "San Lorenzo de El Escorial",
+}
+
 
 def leer_serie(nombre, territorio, unidad):
     datos = pd.read_csv(
@@ -97,6 +107,20 @@ def main():
     contratos = leer_serie(
         "contratos_municipio.csv", "Territorio", "Contratos"
     )
+
+    contratos["municipio"] = contratos["municipio"].replace(
+        NOMBRES_CONTRATOS_A_PARO
+    )
+
+    municipios_paro = set(paro["municipio"])
+    municipios_contratos = set(contratos["municipio"])
+
+    if municipios_paro != municipios_contratos:
+        raise ValueError(
+            "Los municipios de paro y contratos no coinciden. "
+            f"Solo en paro: {sorted(municipios_paro - municipios_contratos)}. "
+            f"Solo en contratos: {sorted(municipios_contratos - municipios_paro)}."
+        )
 
     comprobar_continuidad(paro, ["municipio", "grupo_edad"])
     comprobar_continuidad(contratos, ["municipio"])
