@@ -287,6 +287,8 @@ Su formato se describe en `docs/contrato_alertas.md`. Antes de escribirlo,
 comprueba las reglas del contrato y se detiene si alguna falla.
 El archivo no se incluye en GitHub.
 
+Para reproducir la revisión de las incidencias de los contratos (mayo de 2026, Velilla de San Antonio y redondeo a múltiplos de 5), ejecutar `.\.venv\Scripts\python.exe .\src\investigar_contratos.py`: no modifica datos y escribe sus resultados en `resultados/investigacion_contratos/` (ver `docs/decisiones.md`).
+
 ## Acuerdos de trabajo
 
 - Comunicar qué tarea y archivos está modificando cada integrante.

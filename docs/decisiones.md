@@ -34,3 +34,21 @@ tales hasta que se adopten.
 - Comprobación: el script reproduce el notebook en todas las filas y
   columnas comunes. En octubre de 2026 da 15 alertas experimentales,
   157 municipios sin alerta y 7 con dispersión cero.
+
+### 19/11/2026 — Incidencias en los contratos de trabajo
+
+- Constatación: los contratos de mayo de 2026 son menos de la mitad de lo
+  habitual en casi todos los municipios, y Velilla de San Antonio repite
+  368 contratos desde septiembre de 2025. Ambas incidencias están en el
+  archivo original, idéntico al que publica el portal el 19/11/2026, y no
+  en la preparación: los 46.898 valores procesados coinciden con el original.
+- Decisión de trabajo: no corregir ni excluir estos datos sin una
+  confirmación de la fuente. Se deja constancia aquí y en
+  docs/fuentes_datos.md.
+- Los contratos no intervienen en el detector: las alertas no se ven afectadas.
+- La nota del portal sobre el redondeo a múltiplos de 5 desde 2022 no se
+  aprecia en los valores municipales del archivo. No se aplica ningún
+  tratamiento.
+- La ficha avisa de ambas incidencias cuando el gráfico de contratos
+  incluye meses afectados. Pendiente: consultar a la D. G. del Servicio
+  Público de Empleo si procede.

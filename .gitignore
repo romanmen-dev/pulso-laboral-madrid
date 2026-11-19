@@ -228,3 +228,4 @@ datos/procesados/*
 !datos/procesados/.gitkeep
 
 resultados/alertas.csv
+resultados/investigacion_contratos/
