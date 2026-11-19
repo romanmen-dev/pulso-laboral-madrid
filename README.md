@@ -93,7 +93,9 @@ En los cuadernos Jupyter, seleccionar también este entorno mediante Select Kern
 
 Abrir en el navegador la dirección que figure como Local URL en la terminal, normalmente http://localhost:8501.
 
-La pantalla inicial debe mostrar el título «Pulso Laboral Madrid» y el mensaje de configuración completada.
+La aplicación lee `resultados/alertas.csv` y muestra la vista general del último mes. Si ese archivo todavía no existe, indica los comandos que hay que ejecutar para generarlo (ver «Datos y reproducibilidad»).
+
+Si se modifica un archivo de `src/` con la aplicación abierta y no se ven los cambios, detenerla y volver a ejecutarla.
 
 Mantener la terminal abierta mientras se utiliza la aplicación. Para detenerla, pulsar Ctrl + C en esa terminal.
 
