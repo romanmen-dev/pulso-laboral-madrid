@@ -14,20 +14,19 @@
   <img src="https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&amp;logoColor=white" alt="Python 3.12 o posterior">
 </p>
 
-<!-- Sustituir <ENLACE DE LA APP> por la dirección de la aplicación en Streamlit Community Cloud. -->
 <p align="center">
-  <a href="<ENLACE DE LA APP>"><img src="https://img.shields.io/badge/Abrir_la_aplicaci%C3%B3n-C8102E?style=for-the-badge&amp;logo=streamlit&amp;logoColor=white" alt="Abrir la aplicación"></a>
+  <a href="https://pulso-laboral-madrid.streamlit.app/"><img src="https://img.shields.io/badge/Abrir_la_aplicaci%C3%B3n-C8102E?style=for-the-badge&amp;logo=streamlit&amp;logoColor=white" alt="Abrir la aplicación"></a>
 </p>
 
-Cada mes cambia el paro registrado de los 179 municipios de la Comunidad de Madrid. Pulso Laboral Madrid compara cada cambio con lo habitual en ese municipio y en esa época del año, y señala las subidas que se salen de lo esperable para que se revisen a tiempo. Usa solo datos abiertos y se puede probar en la [aplicación publicada](<ENLACE DE LA APP>).
+Cada mes cambia el paro registrado de los 179 municipios de la Comunidad de Madrid. Pulso Laboral Madrid compara cada cambio con lo habitual en ese municipio y en esa época del año, y señala las subidas que se salen de lo esperable para que se revisen a tiempo. Usa solo datos abiertos y se puede probar en la [aplicación publicada](https://pulso-laboral-madrid.streamlit.app/).
 
 > Las alertas son **experimentales** y todavía no están validadas.
 
 [Para quién](#para-quién) · [Caso de uso](#caso-de-uso-ilustrativo) · [Cómo funciona](#cómo-funciona) · [Resultados](#resultados) · [Datos](#datos) · [Limitaciones](#limitaciones) · [Instalación](#instalación-y-reproducción) · [Equipo](#equipo)
 
-![Vista general de octubre de 2026 en la aplicación: 15 municipios con alerta experimental, 157 sin alerta y 7 no evaluables, con la tabla de alertas](docs/capturas/vista_general_octubre_2026.png)
+![Vista general de octubre de 2026 en la aplicación: 15 municipios con alerta experimental, 157 sin alerta y 7 no evaluables, el mapa de los 179 municipios coloreado por estado y la tabla de alertas](docs/capturas/vista_general_octubre_2026.png)
 
-<p align="center"><em>Vista general de octubre de 2026 en la aplicación.</em></p>
+<p align="center"><em>Vista general de octubre de 2026 en la aplicación: recuento, mapa de municipios y tabla de alertas.</em></p>
 
 ## Para quién
 
@@ -44,7 +43,7 @@ Está pensada para estos usuarios potenciales. Todavía no se ha probado con ell
 
 1. **Detectar.** En la vista general de octubre de 2026, Madrid aparece entre los 15 municipios con alerta experimental.
 2. **Abrir la ficha.** Al seleccionar su fila se abre la ficha: el paro subió 2.130 personas, cuando lo habitual en octubre era +61 y el límite de alerta, +826. El grupo con mayor aumento es el de 25 a 44 años (+1.074).
-3. **Contrastar.** La pestaña «Cambios frente al límite» muestra si la subida es aislada o se repite en otros meses, y los contratos del municipio sirven de contexto. El técnico lo cruza con la información local que conozca.
+3. **Contrastar.** La pestaña «Cambios frente al límite» muestra si la subida es aislada o se repite en otros meses. El técnico lo cruza con la información local que conozca. Al final de la ficha, en una sección aparte y plegada, «Contratos registrados en centros de trabajo del municipio», están los contratos del municipio. No se comparan con el paro: se cuentan por centro de trabajo y son contratos, no personas.
 4. **Decidir si investigar.** La alerta no explica la causa: indica que la subida merece una revisión. Investigar o no es una decisión del técnico.
 
 ## Cómo funciona
@@ -96,11 +95,15 @@ En curso. Roman está evaluando el comportamiento histórico del detector ([`not
 | Conjunto de datos | Uso |
 |---|---|
 | [Paro registrado, por edad y municipio](https://datos.comunidad.madrid/dataset/paro_registrado_edad_municipio) | Serie principal: detector y desglose por edad |
-| [Contratos de trabajo, por municipio](https://datos.comunidad.madrid/dataset/contratos_trabajo_municipio) | Solo contexto en la ficha: no interviene en el detector |
+| [Contratos de trabajo, por municipio](https://datos.comunidad.madrid/dataset/contratos_trabajo_municipio) | Contexto, en una sección aparte de la ficha: «Contratos registrados en centros de trabajo del municipio». No se compara con el paro porque se cuenta por centro de trabajo y son contratos, no personas. No interviene en el detector |
+| [Municipios de la Comunidad de Madrid](https://datos.comunidad.madrid/dataset/municipio_comunidad_madrid) | Correspondencia entre nombre y código INE, para cruzar el mapa por código |
+| [Límites municipales del Geoportal IDEM](https://idem.comunidad.madrid/catalogocartografia/srv/spa/catalog.search#/metadata/spacm_divisionesadmin) | Mapa de la vista general |
 
-- **Cobertura:** 179 municipios, de enero de 2005 a octubre de 2026 (262 meses). Versión descargada el 18/11/2026 y verificada con su huella SHA-256.
+- **Cobertura:** 179 municipios, de enero de 2005 a octubre de 2026 (262 meses). Paro y contratos descargados el 18/11/2026; municipios y límites, el 20/11/2026. Todos se verifican con su huella SHA-256.
 - **Licencia:** [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/legalcode.es). Datos del Portal de Datos Abiertos de la Comunidad de Madrid, publicados por su Instituto de Estadística. Fuente: D. G. del Servicio Público de Empleo. Este proyecto los transforma: series mensuales, nombres de municipio armonizados y alertas calculadas.
-- **Incidencias documentadas en los contratos**, presentes en el archivo original y sin corregir. La aplicación avisa de ellas en la ficha:
+- **Límites municipales:** Infraestructura de Datos Espaciales de la Comunidad de Madrid (Geoportal IDEM), con licencia CC BY 4.0 Comunidad de Madrid. Atribución: «Información geográfica de la Comunidad de Madrid. Acceso público y gratuito en CC BY 4.0 Comunidad de Madrid». Para el mapa, se unen los enclaves a su municipio, se dejan sin colorear los dos territorios compartidos (Los Baldíos y El Redegüelo) y se simplifica la geometría.
+- **Paro y contratos no miden lo mismo:** los contratos se agrupan por la localidad del centro de trabajo, vivan donde vivan las personas contratadas, y se cuentan contratos, no personas. Por eso la aplicación los muestra aparte, sin compararlos con el paro.
+- **Incidencias documentadas en los contratos**, presentes en el archivo original y sin corregir. La aplicación avisa de ellas en la sección de contratos de la ficha:
   - Mayo de 2026: 96.263 contratos, frente a 176.830 en abril y 233.453 en junio. Bajan 167 de los 178 municipios comparables.
   - Velilla de San Antonio: 368 contratos todos los meses desde septiembre de 2025.
 
@@ -215,9 +218,17 @@ Comprueban el contrato de `datos/publicados/alertas.csv`, el detector con series
 
 Los CSV originales y procesados no se incluyen en GitHub: `.gitignore` excluye el contenido de `datos/originales/` y `datos/procesados/`, salvo sus `.gitkeep`. Clonar o actualizar el repositorio descarga el código, y los datos se obtienen con los pasos siguientes, desde la carpeta principal del proyecto.
 
-La única excepción es `datos/publicados/`: una copia versionada de las tablas que lee la aplicación, para poder publicarla (paso 4). La aplicación usa las tablas locales si están todas y, si no, esa copia.
+La única excepción es `datos/publicados/`: una copia versionada de las tablas que lee la aplicación, para poder publicarla (paso 5). La aplicación usa las tablas locales si están todas y, si no, esa copia.
 
 Las páginas de origen están documentadas en `docs/fuentes_datos.md`.
+
+#### Forma rápida: toda la cadena
+
+```powershell
+.\.venv\Scripts\python.exe .\src\ejecutar_todo.py
+```
+
+Ejecuta en orden los pasos 1 a 5: descarga, comprobación, preparación de las tablas y del mapa, detección y publicación. Se detiene en el primer paso que falle e indica cuál ha sido. Después, conviene ejecutar las pruebas (paso 6). Los apartados siguientes explican cada paso por separado.
 
 #### 1. Descargar los datos originales
 
@@ -225,10 +236,11 @@ Las páginas de origen están documentadas en `docs/fuentes_datos.md`.
 .\.venv\Scripts\python.exe .\src\descargar_datos.py
 ```
 
-El script descarga del Portal de Datos Abiertos de la Comunidad de Madrid los dos archivos del proyecto y los guarda en `datos/originales/`:
+El script descarga los cuatro archivos del proyecto y los guarda en `datos/originales/`:
 
-- `paro_edad_municipio.csv`
-- `contratos_municipio.csv`
+- `paro_edad_municipio.csv` y `contratos_municipio.csv`: paro y contratos, del Portal de Datos Abiertos de la Comunidad de Madrid.
+- `municipios_comunidad_madrid.csv`: nombres y códigos INE de los municipios, del mismo portal.
+- `limites_municipales_idem.csv`: límites municipales, del servicio WFS del Geoportal IDEM.
 
 Para garantizar que todos trabajan con los mismos datos, compara la huella SHA-256 de cada descarga con la de la versión revisada:
 
@@ -272,7 +284,15 @@ así que las dos tablas se pueden cruzar por `municipio`.
 El paro total calculado aún está pendiente de contraste con
 una fuente independiente de totales oficiales.
 
-#### 3. Detectar alertas
+#### 3. Preparar el mapa
+
+```powershell
+.\.venv\Scripts\python.exe .\src\preparar_mapa.py
+```
+
+Genera `datos/procesados/municipios_mapa.geojson`, la geometría del mapa de la vista general. Cruza los límites con los municipios del paro por código INE, no por nombre; une los 13 enclaves a su municipio, deja fuera las 2 comunidades jurisdiccionales (territorios compartidos por dos municipios) y simplifica la geometría sin dejar huecos entre vecinos. Se detiene si algún municipio no tiene exactamente un término municipal. Necesita las tablas del paso 2 y `shapely`, incluido en `requirements-dev.txt`.
+
+#### 4. Detectar alertas
 
 ```powershell
 .\.venv\Scripts\python.exe .\src\detectar_alertas.py
@@ -284,13 +304,23 @@ Su formato se describe en `docs/contrato_alertas.md`. Antes de escribirlo,
 comprueba las reglas del contrato y se detiene si alguna falla.
 El archivo no se incluye en GitHub.
 
-#### 4. Publicar los datos de la aplicación
+#### 5. Publicar los datos de la aplicación
 
 ```powershell
 .\.venv\Scripts\python.exe .\src\publicar_datos.py
 ```
 
-Copia a `datos/publicados/` lo que lee la aplicación (`resultados/alertas.csv`, `paro_edad_mensual.csv` y `contratos_mensuales.csv`) y escribe `publicacion.json`, con la fecha de generación, el periodo de los datos, el commit, la atribución de la licencia y las huellas SHA-256 de los originales y de cada archivo. Se detiene si `alertas.csv` es anterior a los datos procesados o si los originales no son la versión revisada. Después hay que hacer commit de `datos/publicados/` para que la aplicación publicada use los datos nuevos. `.gitattributes` hace que Git guarde esa carpeta byte a byte, sin cambiar los finales de línea, para que las huellas sigan siendo válidas.
+Copia a `datos/publicados/` lo que lee la aplicación (`resultados/alertas.csv`, `paro_edad_mensual.csv`, `contratos_mensuales.csv` y `municipios_mapa.geojson`) y escribe `publicacion.json`, con la fecha de generación, el periodo de los datos, el commit, la atribución de la licencia y las huellas SHA-256 de los originales y de cada archivo. Se detiene si `alertas.csv` es anterior a los datos procesados o si los originales no son la versión revisada. Después hay que hacer commit de `datos/publicados/` para que la aplicación publicada use los datos nuevos. `.gitattributes` hace que Git guarde esa carpeta byte a byte, sin cambiar los finales de línea, para que las huellas sigan siendo válidas.
+
+#### 6. Comprobar con las pruebas
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest
+```
+
+Comprueban la copia de `datos/publicados/`: que `alertas.csv` cumple las reglas de `docs/contrato_alertas.md` y que el mapa tiene exactamente una geometría por municipio. También prueban el detector con series sintéticas: un caso conocido (Madrid, octubre de 2026) y que ningún resultado usa información de meses posteriores. Conviene ejecutarlas antes de hacer commit de `datos/publicados/`. No necesitan los datos originales; GitHub Actions las ejecuta en cada push y pull request, con Python 3.12 y 3.13.
+
+#### Revisión de las incidencias de los contratos
 
 Para reproducir la revisión de las incidencias de los contratos (mayo de 2026, Velilla de San Antonio y redondeo a múltiplos de 5), ejecutar `.\.venv\Scripts\python.exe .\src\investigar_contratos.py`: no modifica datos y escribe sus resultados en `resultados/investigacion_contratos/` (ver `docs/decisiones.md`).
 
@@ -307,7 +337,9 @@ Para reproducir la revisión de las incidencias de los contratos (mayo de 2026, 
 | `datos/procesados/` | Tablas generadas por la preparación |
 | `datos/publicados/` | Copia versionada de los datos que lee la aplicación publicada |
 | `notebooks/` | Exploración y análisis |
-| `src/` | Código reutilizable |
+| `src/` | Código reutilizable y scripts de la cadena de datos (`ejecutar_todo.py` la ejecuta entera) |
+| `tests/` | Pruebas automáticas con pytest: contrato de alertas, detector y mapa |
+| `.github/` | Flujo de GitHub Actions que ejecuta las pruebas en cada push y pull request |
 | `resultados/` | Informes de comprobación, registros de descarga, tablas y gráficos |
 | `docs/` | Fuentes y decisiones metodológicas |
 
