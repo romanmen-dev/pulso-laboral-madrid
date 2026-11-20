@@ -9,6 +9,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/romanmen-dev/pulso-laboral-madrid/actions/workflows/pruebas.yml"><img src="https://github.com/romanmen-dev/pulso-laboral-madrid/actions/workflows/pruebas.yml/badge.svg" alt="Pruebas"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/licencia-MIT-blue" alt="Licencia MIT"></a>
   <img src="https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&amp;logoColor=white" alt="Python 3.12 o posterior">
 </p>
@@ -201,6 +202,14 @@ Si se modifica un archivo de `src/` con la aplicación abierta y no se ven los c
 Mantener la terminal abierta mientras se utiliza la aplicación. Para detenerla, pulsar Ctrl + C en esa terminal.
 
 Cada ordenador ejecuta su propia copia de la aplicación.
+
+#### 6. Ejecutar las pruebas
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest
+```
+
+Comprueban el contrato de `datos/publicados/alertas.csv`, el detector con series sintéticas y el mapa, sin necesitar los datos originales; GitHub Actions las ejecuta en cada push y pull request.
 
 ### Datos y reproducibilidad
 
