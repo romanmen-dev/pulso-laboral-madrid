@@ -1,0 +1,4 @@
+# datos/publicados/ se versiona byte a byte, sin convertir los finales de
+# línea: publicacion.json guarda la huella SHA-256 de cada archivo, y debe
+# coincidir con lo que lee la aplicación en cualquier sistema.
+datos/publicados/** -text

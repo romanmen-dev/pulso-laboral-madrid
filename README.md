@@ -74,8 +74,13 @@ Cada integrante crea su propio entorno `.venv` en su ordenador.
 ### 3. Instalar las dependencias
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 ```
+
+`requirements-dev.txt` incluye `requirements.txt`, así que este comando instala los dos:
+
+- `requirements.txt`: lo mínimo para la aplicación. Es lo que instala Streamlit Community Cloud.
+- `requirements-dev.txt`: añade la cadena de datos, Jupyter y las herramientas de desarrollo.
 
 ### 4. Seleccionar el intérprete en VS Code
 
@@ -108,9 +113,11 @@ Cada ordenador ejecuta su propia copia de la aplicación.
 | `app.py` | Entrada de la aplicación Streamlit |
 | `.streamlit/config.toml` | Tema de la aplicación (modo claro y oscuro) |
 | `assets/` | Logo e icono propios del proyecto, en SVG |
-| `requirements.txt` | Versiones de las dependencias |
+| `requirements.txt` | Dependencias mínimas de la aplicación |
+| `requirements-dev.txt` | Dependencias de desarrollo (incluye `requirements.txt`) |
 | `datos/originales/` | Ficheros descargados de las fuentes |
 | `datos/procesados/` | Tablas generadas por la preparación |
+| `datos/publicados/` | Copia versionada de los datos que lee la aplicación publicada |
 | `notebooks/` | Exploración y análisis |
 | `src/` | Código reutilizable |
 | `resultados/` | Informes de comprobación, registros de descarga, tablas y gráficos |
@@ -204,23 +211,26 @@ Si aparecen conflictos, revisar conjuntamente los archivos afectados antes de co
 
 ## Dependencias
 
-Cuando cambie `requirements.txt`, actualizar el entorno local:
+Cuando cambie `requirements.txt` o `requirements-dev.txt`, actualizar el entorno local:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 ```
 
-Si alguien añade una biblioteca necesaria, debe instalarla dentro de `.venv` y actualizar el archivo:
+Si alguien añade una biblioteca, debe instalarla dentro de `.venv` y añadirla a mano, con su versión exacta (`paquete==versión`), en el archivo que corresponda:
 
-```powershell
-.\.venv\Scripts\python.exe -m pip freeze | Set-Content -Encoding utf8 requirements.txt
-```
+- `requirements.txt`, si la usa la aplicación (`app.py` o `src/*_app.py`).
+- `requirements-dev.txt`, si solo la usan los scripts de datos o los cuadernos.
+
+No sobrescribir `requirements.txt` con `pip freeze`: incluiría paquetes de Windows y de Jupyter que no se pueden o no se deben instalar en Streamlit Community Cloud.
 
 Incluir ese cambio en la pull request y avisar al otro integrante.
 
 ## Datos y reproducibilidad
 
-Los CSV no se incluyen en GitHub: `.gitignore` excluye el contenido de `datos/originales/` y `datos/procesados/`, salvo sus `.gitkeep`. Clonar o actualizar el repositorio descarga el código, y los datos se obtienen con los pasos siguientes, desde la carpeta principal del proyecto.
+Los CSV originales y procesados no se incluyen en GitHub: `.gitignore` excluye el contenido de `datos/originales/` y `datos/procesados/`, salvo sus `.gitkeep`. Clonar o actualizar el repositorio descarga el código, y los datos se obtienen con los pasos siguientes, desde la carpeta principal del proyecto.
+
+La única excepción es `datos/publicados/`: una copia versionada de las tablas que lee la aplicación, para poder publicarla (paso 4). La aplicación usa las tablas locales si están todas y, si no, esa copia.
 
 Las páginas de origen están documentadas en `docs/fuentes_datos.md`.
 
@@ -288,6 +298,14 @@ y genera `resultados/alertas.csv`, con una fila por municipio y mes.
 Su formato se describe en `docs/contrato_alertas.md`. Antes de escribirlo,
 comprueba las reglas del contrato y se detiene si alguna falla.
 El archivo no se incluye en GitHub.
+
+### 4. Publicar los datos de la aplicación
+
+```powershell
+.\.venv\Scripts\python.exe .\src\publicar_datos.py
+```
+
+Copia a `datos/publicados/` lo que lee la aplicación (`resultados/alertas.csv`, `paro_edad_mensual.csv` y `contratos_mensuales.csv`) y escribe `publicacion.json`, con la fecha de generación, el periodo de los datos, el commit, la atribución de la licencia y las huellas SHA-256 de los originales y de cada archivo. Se detiene si `alertas.csv` es anterior a los datos procesados o si los originales no son la versión revisada. Después hay que hacer commit de `datos/publicados/` para que la aplicación publicada use los datos nuevos. `.gitattributes` hace que Git guarde esa carpeta byte a byte, sin cambiar los finales de línea, para que las huellas sigan siendo válidas.
 
 Para reproducir la revisión de las incidencias de los contratos (mayo de 2026, Velilla de San Antonio y redondeo a múltiplos de 5), ejecutar `.\.venv\Scripts\python.exe .\src\investigar_contratos.py`: no modifica datos y escribe sus resultados en `resultados/investigacion_contratos/` (ver `docs/decisiones.md`).
 

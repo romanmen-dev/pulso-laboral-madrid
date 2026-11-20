@@ -221,9 +221,17 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Datos: de datos/ solo se versiona datos/publicados/, la copia que lee la
+# aplicación desplegada (src/publicar_datos.py, docs/decisiones.md). Los
+# originales y los procesados quedan fuera de GitHub; sus .gitkeep conservan
+# las carpetas.
+datos/*
+!datos/publicados/
+!datos/originales/
+!datos/procesados/
 datos/originales/*
 !datos/originales/.gitkeep
-
 datos/procesados/*
 !datos/procesados/.gitkeep
 

@@ -16,6 +16,7 @@ RUTA_LOGO = RAIZ / "assets" / "logo_horizontal.svg"
 RUTA_ICONO = RAIZ / "assets" / "icono.svg"
 
 URL_PORTAL = "https://datos.comunidad.madrid/"
+URL_LICENCIA = "https://creativecommons.org/licenses/by/4.0/legalcode.es"
 
 COLORES = {
     "claro": {"carmesi": "#C8102E", "tinta": "#1F2328"},

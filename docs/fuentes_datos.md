@@ -39,6 +39,22 @@ Fecha de descarga: 18 de noviembre de 2026.
   - Velilla de San Antonio: 368 contratos todos los meses desde
     septiembre de 2025 hasta octubre de 2026.
 
+## Licencia y atribución
+
+- Licencia de los dos conjuntos: Creative Commons Reconocimiento 4.0
+  (CC BY 4.0), según los metadatos del portal consultados el 20/11/2026:
+  https://creativecommons.org/licenses/by/4.0/legalcode.es
+- Los publica el Instituto de Estadística de la Comunidad de Madrid en el
+  Portal de Datos Abiertos. Fuente de los datos: D. G. del Servicio Público
+  de Empleo (Consejería de Economía, Hacienda y Empleo).
+- Atribución que usa el proyecto en el pie de la aplicación y en
+  datos/publicados/publicacion.json:
+  > Datos: Portal de Datos Abiertos de la Comunidad de Madrid, con licencia
+  > CC BY 4.0. Fuente: D. G. del Servicio Público de Empleo. Este proyecto
+  > los transforma: series mensuales y alertas experimentales calculadas.
+- datos/publicados/ redistribuye datos derivados de estos conjuntos (ver
+  docs/decisiones.md, 20/11/2026).
+
 ## Conservación
 
 Los CSV originales se conservan sin modificar.

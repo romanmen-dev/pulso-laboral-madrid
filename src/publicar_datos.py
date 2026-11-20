@@ -1,0 +1,178 @@
+"""Copia a datos/publicados/ los datos que lee la aplicación.
+
+Streamlit Community Cloud no ejecuta la cadena de descarga, preparación y
+detección: la aplicación publicada lee esta copia. Junto a ella se escribe
+publicacion.json, que identifica de dónde sale: fecha de generación, último
+mes de datos, commit y huellas SHA-256 de los originales y de cada archivo.
+
+Se detiene si alertas.csv es anterior a los datos procesados o si los
+originales no son la versión revisada que fija src/descargar_datos.py.
+"""
+
+import hashlib
+import json
+import shutil
+import subprocess
+from datetime import datetime
+from pathlib import Path
+
+import pandas as pd
+
+from descargar_datos import FUENTES
+
+
+RAIZ = Path(__file__).resolve().parents[1]
+ORIGINALES = RAIZ / "datos" / "originales"
+PUBLICADOS = RAIZ / "datos" / "publicados"
+
+# Solo lo que lee la aplicación (src/datos_app.py).
+ARCHIVOS = [
+    RAIZ / "resultados" / "alertas.csv",
+    RAIZ / "datos" / "procesados" / "paro_edad_mensual.csv",
+    RAIZ / "datos" / "procesados" / "contratos_mensuales.csv",
+]
+ALERTAS, *PROCESADOS = ARCHIVOS
+
+# Scripts que generan los datos. Si tienen cambios sin commit, el commit
+# anotado en publicacion.json no basta para reproducir la copia.
+CADENA = [
+    "src/descargar_datos.py",
+    "src/comprobar_datos.py",
+    "src/preparar_datos.py",
+    "src/detectar_alertas.py",
+]
+
+# Atribución exigida por la licencia CC BY 4.0 de los datos del portal
+# (docs/fuentes_datos.md). Se repite en publicacion.json porque esta copia
+# redistribuye datos derivados.
+PAGINAS = {
+    "paro_edad_municipio.csv": "https://datos.comunidad.madrid/dataset/paro_registrado_edad_municipio",
+    "contratos_municipio.csv": "https://datos.comunidad.madrid/dataset/contratos_trabajo_municipio",
+}
+ATRIBUCION = {
+    "fuente": (
+        "Comunidad de Madrid. Portal de Datos Abiertos (datos.comunidad.madrid). "
+        "Fuente de los datos: D. G. del Servicio Público de Empleo."
+    ),
+    "licencia": "CC BY 4.0",
+    "url_licencia": "https://creativecommons.org/licenses/by/4.0/legalcode.es",
+    "modificaciones": (
+        "Datos transformados por Pulso Laboral Madrid: series mensuales, nombres "
+        "de municipio armonizados y alertas experimentales calculadas."
+    ),
+}
+
+
+def huella(ruta):
+    return hashlib.sha256(ruta.read_bytes()).hexdigest()
+
+
+def filas_csv(ruta):
+    with ruta.open("rb") as archivo:
+        return sum(1 for _ in archivo) - 1
+
+
+def git(*argumentos):
+    try:
+        resultado = subprocess.run(
+            ["git", *argumentos], cwd=RAIZ, capture_output=True, text=True, check=True
+        )
+        return resultado.stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        return None
+
+
+def comprobar_entradas():
+    faltan = [ruta for ruta in ARCHIVOS if not ruta.is_file()]
+    if faltan:
+        raise FileNotFoundError(
+            "Faltan archivos: "
+            + ", ".join(str(r.relative_to(RAIZ)) for r in faltan)
+            + ". Ejecuta antes preparar_datos.py y detectar_alertas.py."
+        )
+
+    recientes = [r for r in PROCESADOS if r.stat().st_mtime > ALERTAS.stat().st_mtime]
+    if recientes:
+        raise ValueError(
+            "resultados/alertas.csv es anterior a "
+            + ", ".join(r.name for r in recientes)
+            + ". Ejecuta de nuevo src/detectar_alertas.py antes de publicar."
+        )
+
+
+def comprobar_originales():
+    originales = []
+    for fuente in FUENTES:
+        ruta = ORIGINALES / fuente["archivo"]
+        if not ruta.is_file():
+            raise FileNotFoundError(
+                f"No se encuentra {ruta.relative_to(RAIZ)}: hace falta para "
+                "registrar de qué versión salen los datos publicados."
+            )
+        firma = huella(ruta)
+        if firma != fuente["sha256"]:
+            raise ValueError(
+                f"{fuente['archivo']} no es la versión revisada que fija "
+                "src/descargar_datos.py. No se publica."
+            )
+        originales.append(
+            {
+                "archivo": fuente["archivo"],
+                "sha256": firma,
+                "pagina": PAGINAS[fuente["archivo"]],
+                "url": fuente["url"],
+            }
+        )
+    return originales
+
+
+def main():
+    comprobar_entradas()
+    originales = comprobar_originales()
+
+    PUBLICADOS.mkdir(parents=True, exist_ok=True)
+
+    archivos = []
+    for origen in ARCHIVOS:
+        destino = PUBLICADOS / origen.name
+        shutil.copy2(origen, destino)
+        archivos.append(
+            {
+                "archivo": destino.name,
+                "origen": origen.relative_to(RAIZ).as_posix(),
+                "bytes": destino.stat().st_size,
+                "filas": filas_csv(destino),
+                "sha256": huella(destino),
+            }
+        )
+
+    fechas = pd.read_csv(ALERTAS, sep=";", encoding="utf-8-sig", usecols=["fecha"])["fecha"]
+    estado_cadena = git("status", "--porcelain", "--", *CADENA)
+
+    publicacion = {
+        "generado": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "datos_desde": fechas.min()[:7],
+        "datos_hasta": fechas.max()[:7],
+        "commit": git("rev-parse", "HEAD"),
+        "cadena_con_cambios_sin_commit": (
+            bool(estado_cadena) if estado_cadena is not None else None
+        ),
+        "atribucion": ATRIBUCION,
+        "originales": originales,
+        "archivos": archivos,
+    }
+    (PUBLICADOS / "publicacion.json").write_text(
+        json.dumps(publicacion, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+
+    total = sum(a["bytes"] for a in archivos)
+    for a in archivos:
+        print(f"Publicado: {a['archivo']} | {a['bytes'] / 1e6:.1f} MB | {a['filas']:,} filas".replace(",", "."))
+    print(f"Total: {total / 1e6:.1f} MB en datos/publicados/")
+    print(f"Datos de {publicacion['datos_desde']} a {publicacion['datos_hasta']}. Commit: {publicacion['commit']}")
+    if publicacion["cadena_con_cambios_sin_commit"]:
+        print("Aviso: la cadena de datos tiene cambios sin commit; el commit anotado no los incluye.")
+
+
+if __name__ == "__main__":
+    main()
