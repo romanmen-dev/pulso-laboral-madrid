@@ -106,6 +106,8 @@ Cada ordenador ejecuta su propia copia de la aplicación.
 | Ruta | Contenido |
 |---|---|
 | `app.py` | Entrada de la aplicación Streamlit |
+| `.streamlit/config.toml` | Tema de la aplicación (modo claro y oscuro) |
+| `assets/` | Logo e icono propios del proyecto, en SVG |
 | `requirements.txt` | Versiones de las dependencias |
 | `datos/originales/` | Ficheros descargados de las fuentes |
 | `datos/procesados/` | Tablas generadas por la preparación |

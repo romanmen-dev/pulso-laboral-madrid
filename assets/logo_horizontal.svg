@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 48" width="280" height="48" role="img" aria-label="Pulso Laboral Madrid">
+  <title>Pulso Laboral Madrid</title>
+  <!-- Símbolo propio (el de assets/icono.svg, a escala) y nombre del proyecto. -->
+  <style>
+    .linea { fill: none; stroke: #C8102E; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
+    .estrella { fill: #C8102E; stroke: #C8102E; stroke-width: 1.2; stroke-linejoin: round; }
+    .tinta { fill: #1F2328; }
+    .acento { fill: #C8102E; }
+    text { font-family: "Segoe UI", "Source Sans 3", "Source Sans Pro", "Helvetica Neue", Arial, sans-serif; font-size: 22px; font-weight: 700; }
+    @media (prefers-color-scheme: dark) {
+      .linea { stroke: #E0475B; }
+      .estrella { fill: #E0475B; stroke: #E0475B; }
+      .acento { fill: #E0475B; }
+      .tinta { fill: #F2F1EE; }
+    }
+  </style>
+  <g transform="scale(0.75)">
+    <path class="linea" d="M5 45 H17 L23.77 26.33 M40.23 26.33 L46 59 L51.5 45 H59"/>
+    <polygon class="estrella" points="32.00,1.00 35.29,10.47 45.31,10.67 37.33,16.73 40.23,26.33 32.00,20.60 23.77,26.33 26.67,16.73 18.69,10.67 28.71,10.47"/>
+  </g>
+  <!-- textLength fija el ancho medido con Segoe UI para que otras fuentes del sistema mantengan la composición. -->
+  <text y="31"><tspan class="tinta" x="56" textLength="139.3" lengthAdjust="spacing">Pulso Laboral</tspan><tspan class="acento" x="202" textLength="75.2" lengthAdjust="spacing">Madrid</tspan></text>
+</svg>

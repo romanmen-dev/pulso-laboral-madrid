@@ -1,0 +1,19 @@
+# Tema de Pulso Laboral Madrid.
+#
+# El carmesí de marca (#C8102E) es el color de acento en los dos modos. Se
+# comprobó con un validador de paletas frente al naranja de las alertas
+# (#ec835a): se distinguen con visión normal (ΔE 20,7) y con daltonismo
+# (ΔE 18,2), y contrasta al menos 3:1 con el fondo claro y con el oscuro.
+#
+# Los colores de los gráficos no se fijan aquí: están en src/graficos_app.py,
+# validados para daltonismo. El logo está en assets/.
+
+[theme.light]
+primaryColor = "#C8102E"
+linkColor = "#A6192E"
+textColor = "#1F2328"
+secondaryBackgroundColor = "#F6F5F3"
+
+[theme.dark]
+primaryColor = "#C8102E"
+linkColor = "#E0475B"
