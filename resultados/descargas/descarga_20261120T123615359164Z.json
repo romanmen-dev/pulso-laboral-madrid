@@ -1,0 +1,46 @@
+[
+  {
+    "archivo": "paro_edad_municipio.csv",
+    "url_solicitada": "https://datos.comunidad.madrid/catalogo/dataset/270edb5a-6788-41d5-ab8a-551c9daead0a/resource/c2be6e03-4915-41ab-9b5e-6ce66602c718/download/extraccionesmovimiento-laboral-registrado.-paro-registrado-por-edad-y-municipio.-comunidad-de-ma.csv",
+    "sha256_esperado": "0d14f265a8d5f9abb76b158f89c2dae983133a033d51bde25d6fce29087be8e2",
+    "inicio_utc": "2026-11-20T12:36:12.656715+00:00",
+    "descarga_completada_utc": "2026-11-20T12:36:13.495607+00:00",
+    "url_final": "https://datos.comunidad.madrid/dataset/270edb5a-6788-41d5-ab8a-551c9daead0a/resource/c2be6e03-4915-41ab-9b5e-6ce66602c718/download/extraccionesmovimiento-laboral-registrado.-paro-registrado-por-edad-y-municipio.-comunidad-de-ma.csv",
+    "bytes": 11154323,
+    "sha256_descargado": "0d14f265a8d5f9abb76b158f89c2dae983133a033d51bde25d6fce29087be8e2",
+    "estado": "verificado_original_existente"
+  },
+  {
+    "archivo": "contratos_municipio.csv",
+    "url_solicitada": "https://datos.comunidad.madrid/catalogo/dataset/19900d46-e62b-4ab1-a65e-ea0fb83bfdcb/resource/8b41acdd-cb88-404d-8767-e99b2cecc431/download/extraccionesmovimiento-laboral-registrado.-contratos-de-trabajo-por-municipio.-comunidad-de-madr.csv",
+    "sha256_esperado": "a3ecd519dfe302e2c1da96b54c9ea8e1e4581b4ea369a1581357f2761be66866",
+    "inicio_utc": "2026-11-20T12:36:13.523104+00:00",
+    "descarga_completada_utc": "2026-11-20T12:36:14.123239+00:00",
+    "url_final": "https://datos.comunidad.madrid/dataset/19900d46-e62b-4ab1-a65e-ea0fb83bfdcb/resource/8b41acdd-cb88-404d-8767-e99b2cecc431/download/extraccionesmovimiento-laboral-registrado.-contratos-de-trabajo-por-municipio.-comunidad-de-madr.csv",
+    "bytes": 15054131,
+    "sha256_descargado": "a3ecd519dfe302e2c1da96b54c9ea8e1e4581b4ea369a1581357f2761be66866",
+    "estado": "verificado_original_existente"
+  },
+  {
+    "archivo": "municipios_comunidad_madrid.csv",
+    "url_solicitada": "https://datos.comunidad.madrid/dataset/0781c37e-bc64-4143-8029-18865bedbc3d/resource/48010e29-caa0-46c5-ab6e-f498b2dc042f/download/municipio_comunidad_madrid.csv",
+    "sha256_esperado": "5f4ee945313b87ae6e6991fbe54e3ea0f346b23de90aa1715920ccafb7b2c902",
+    "inicio_utc": "2026-11-20T12:36:14.160987+00:00",
+    "descarga_completada_utc": "2026-11-20T12:36:14.283503+00:00",
+    "url_final": "https://datos.comunidad.madrid/dataset/0781c37e-bc64-4143-8029-18865bedbc3d/resource/48010e29-caa0-46c5-ab6e-f498b2dc042f/download/municipio_comunidad_madrid.csv",
+    "bytes": 10778,
+    "sha256_descargado": "5f4ee945313b87ae6e6991fbe54e3ea0f346b23de90aa1715920ccafb7b2c902",
+    "estado": "descargado_y_guardado"
+  },
+  {
+    "archivo": "limites_municipales_idem.csv",
+    "url_solicitada": "https://idem.comunidad.madrid/geoidem/UnidadesAdministrativas/wfs?service=WFS&version=1.1.0&request=GetFeature&typeName=UnidadesAdministrativas:IDEM_CM_UNID_ADMIN&srsName=EPSG:4326&outputFormat=csv",
+    "sha256_esperado": "b8dfcbf41ac9bccc810422b3ebe40347c3eddf0be808f5bb248dd836f78720fd",
+    "inicio_utc": "2026-11-20T12:36:14.288882+00:00",
+    "descarga_completada_utc": "2026-11-20T12:36:15.348697+00:00",
+    "url_final": "https://idem.comunidad.madrid/geoidem/UnidadesAdministrativas/wfs?service=WFS&version=1.1.0&request=GetFeature&typeName=UnidadesAdministrativas:IDEM_CM_UNID_ADMIN&srsName=EPSG:4326&outputFormat=csv",
+    "bytes": 6042298,
+    "sha256_descargado": "b8dfcbf41ac9bccc810422b3ebe40347c3eddf0be808f5bb248dd836f78720fd",
+    "estado": "descargado_y_guardado"
+  }
+]

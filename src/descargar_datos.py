@@ -41,6 +41,36 @@ FUENTES = [
             "e4581b4ea369a1581357f2761be66866"
         ),
     },
+    # Correspondencia entre nombre y código municipal, para el mapa.
+    {
+        "archivo": "municipios_comunidad_madrid.csv",
+        "url": (
+            "https://datos.comunidad.madrid/dataset/"
+            "0781c37e-bc64-4143-8029-18865bedbc3d/"
+            "resource/48010e29-caa0-46c5-ab6e-f498b2dc042f/"
+            "download/municipio_comunidad_madrid.csv"
+        ),
+        "sha256": (
+            "5f4ee945313b87ae6e6991fbe54e3ea0"
+            "f346b23de90aa1715920ccafb7b2c902"
+        ),
+    },
+    # Límites municipales del Geoportal IDEM (WFS). Se pide en CSV porque
+    # su contenido es estable entre descargas; el GeoJSON incluye la hora
+    # de la petición y su huella cambiaría cada vez.
+    {
+        "archivo": "limites_municipales_idem.csv",
+        "url": (
+            "https://idem.comunidad.madrid/geoidem/UnidadesAdministrativas/wfs"
+            "?service=WFS&version=1.1.0&request=GetFeature"
+            "&typeName=UnidadesAdministrativas:IDEM_CM_UNID_ADMIN"
+            "&srsName=EPSG:4326&outputFormat=csv"
+        ),
+        "sha256": (
+            "b8dfcbf41ac9bccc810422b3ebe40347"
+            "c3eddf0be808f5bb248dd836f78720fd"
+        ),
+    },
 ]
 
 
@@ -133,7 +163,7 @@ def main():
             "Hay incidencias. Revisa el registro antes de preparar los datos."
         )
 
-    print("Los dos originales coinciden con la versión del proyecto.")
+    print("Todos los originales coinciden con la versión del proyecto.")
 
 
 if __name__ == "__main__":

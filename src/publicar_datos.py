@@ -26,12 +26,13 @@ ORIGINALES = RAIZ / "datos" / "originales"
 PUBLICADOS = RAIZ / "datos" / "publicados"
 
 # Solo lo que lee la aplicación (src/datos_app.py).
-ARCHIVOS = [
-    RAIZ / "resultados" / "alertas.csv",
+ALERTAS = RAIZ / "resultados" / "alertas.csv"
+PROCESADOS = [
     RAIZ / "datos" / "procesados" / "paro_edad_mensual.csv",
     RAIZ / "datos" / "procesados" / "contratos_mensuales.csv",
 ]
-ALERTAS, *PROCESADOS = ARCHIVOS
+MAPA = RAIZ / "datos" / "procesados" / "municipios_mapa.geojson"
+ARCHIVOS = [ALERTAS, *PROCESADOS, MAPA]
 
 # Scripts que generan los datos. Si tienen cambios sin commit, el commit
 # anotado en publicacion.json no basta para reproducir la copia.
@@ -40,6 +41,7 @@ CADENA = [
     "src/comprobar_datos.py",
     "src/preparar_datos.py",
     "src/detectar_alertas.py",
+    "src/preparar_mapa.py",
 ]
 
 # Atribución exigida por la licencia CC BY 4.0 de los datos del portal
@@ -48,17 +50,24 @@ CADENA = [
 PAGINAS = {
     "paro_edad_municipio.csv": "https://datos.comunidad.madrid/dataset/paro_registrado_edad_municipio",
     "contratos_municipio.csv": "https://datos.comunidad.madrid/dataset/contratos_trabajo_municipio",
+    "municipios_comunidad_madrid.csv": "https://datos.comunidad.madrid/dataset/municipio_comunidad_madrid",
+    "limites_municipales_idem.csv": (
+        "https://idem.comunidad.madrid/catalogocartografia/srv/spa/catalog.search"
+        "#/metadata/spacm_divisionesadmin"
+    ),
 }
 ATRIBUCION = {
     "fuente": (
         "Comunidad de Madrid. Portal de Datos Abiertos (datos.comunidad.madrid). "
-        "Fuente de los datos: D. G. del Servicio Público de Empleo."
+        "Fuente de los datos: D. G. del Servicio Público de Empleo. Límites "
+        "municipales: Información geográfica de la Comunidad de Madrid (Geoportal IDEM)."
     ),
     "licencia": "CC BY 4.0",
     "url_licencia": "https://creativecommons.org/licenses/by/4.0/legalcode.es",
     "modificaciones": (
         "Datos transformados por Pulso Laboral Madrid: series mensuales, nombres "
-        "de municipio armonizados y alertas experimentales calculadas."
+        "de municipio armonizados, alertas experimentales calculadas y límites "
+        "municipales simplificados."
     ),
 }
 
@@ -67,7 +76,10 @@ def huella(ruta):
     return hashlib.sha256(ruta.read_bytes()).hexdigest()
 
 
-def filas_csv(ruta):
+def filas(ruta):
+    """Filas de datos de un CSV o entidades de un GeoJSON."""
+    if ruta.suffix == ".geojson":
+        return len(json.loads(ruta.read_text(encoding="utf-8"))["features"])
     with ruta.open("rb") as archivo:
         return sum(1 for _ in archivo) - 1
 
@@ -141,7 +153,7 @@ def main():
                 "archivo": destino.name,
                 "origen": origen.relative_to(RAIZ).as_posix(),
                 "bytes": destino.stat().st_size,
-                "filas": filas_csv(destino),
+                "filas": filas(destino),
                 "sha256": huella(destino),
             }
         )

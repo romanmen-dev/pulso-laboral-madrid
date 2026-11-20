@@ -189,6 +189,60 @@ def figura_contratos(serie, fecha, p):
     return fig
 
 
+def figura_mapa(mapa, tabla, p):
+    """Municipios coloreados por el estado del mes.
+
+    Mismo código de color que la pestaña de cambios: azul sin alerta, naranja
+    alerta experimental y gris no evaluable. Una traza por estado, cada una
+    con solo sus municipios, para que la leyenda tenga una entrada por estado
+    sin repetir la geometría.
+    """
+    colores = {"alerta": p["alerta"], "sin_alerta": p["serie"], "no_evaluable": p["gris_suave"]}
+    fig = go.Figure()
+
+    for categoria, etiqueta in datos.CATEGORIAS_MAPA.items():
+        filas = tabla.loc[tabla["categoria"].eq(categoria)]
+        if filas.empty:
+            continue
+        nombres = set(filas["municipio"])
+        geometria = {
+            "type": "FeatureCollection",
+            "features": [f for f in mapa["features"] if f["properties"]["municipio"] in nombres],
+        }
+        fig.add_choropleth(
+            geojson=geometria,
+            featureidkey="properties.municipio",
+            locations=filas["municipio"],
+            z=[1] * len(filas),
+            colorscale=[[0, colores[categoria]], [1, colores[categoria]]],
+            showscale=False,
+            marker=dict(line=dict(color=p["superficie"], width=0.6)),
+            name=f"{etiqueta} ({datos.numero(len(filas))})",
+            showlegend=True,
+            customdata=filas[["municipio", "estado", "texto_cambio", "texto_limite"]].to_numpy(),
+            hovertemplate=(
+                "<b>%{customdata[0]}</b><br>%{customdata[1]}"
+                "<br>Cambio mensual: %{customdata[2]}"
+                "<br>Límite de alerta: %{customdata[3]}<extra></extra>"
+            ),
+        )
+
+    fig.update_geos(
+        fitbounds="locations",
+        visible=False,
+        projection_type="mercator",
+        bgcolor="rgba(0,0,0,0)",
+    )
+    fig.update_layout(
+        height=580,
+        margin=dict(l=0, r=0, t=34, b=0),
+        legend=dict(orientation="h", yanchor="bottom", y=1.0, x=0, title_text=""),
+        clickmode="event+select",
+        dragmode=False,
+    )
+    return fig
+
+
 def figura_cambios(serie, fecha, p):
     """Cambio mensual frente al límite de alerta, hasta el mes elegido."""
     meses = [datos.nombre_mes(f) for f in serie["fecha"]]

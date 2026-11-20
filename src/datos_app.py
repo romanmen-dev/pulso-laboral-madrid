@@ -21,11 +21,15 @@ RUTA_ALERTAS = RAIZ / "resultados" / "alertas.csv"
 RUTA_PARO_TOTAL = PROCESADOS / "paro_total_mensual.csv"
 RUTA_PARO_EDAD = PROCESADOS / "paro_edad_mensual.csv"
 RUTA_CONTRATOS = PROCESADOS / "contratos_mensuales.csv"
+RUTA_MAPA = PROCESADOS / "municipios_mapa.geojson"
 
 RUTAS_ORIGINALES = [
     ORIGINALES / "paro_edad_municipio.csv",
     ORIGINALES / "contratos_municipio.csv",
+    ORIGINALES / "municipios_comunidad_madrid.csv",
+    ORIGINALES / "limites_municipales_idem.csv",
 ]
+# Tablas de las que sale alertas.csv. La geometría del mapa no influye en él.
 RUTAS_PROCESADOS = [RUTA_PARO_TOTAL, RUTA_PARO_EDAD, RUTA_CONTRATOS]
 
 # Archivos que lee la aplicación. Se usan los locales si están todos; si no,
@@ -37,12 +41,21 @@ ARCHIVOS_APP = {
     "alertas": RUTA_ALERTAS,
     "paro_edad": RUTA_PARO_EDAD,
     "contratos": RUTA_CONTRATOS,
+    "mapa": RUTA_MAPA,
 }
 
 COMANDO_DESCARGAR = r".\.venv\Scripts\python.exe .\src\descargar_datos.py"
 COMANDO_COMPROBAR = r".\.venv\Scripts\python.exe .\src\comprobar_datos.py"
 COMANDO_PREPARAR = r".\.venv\Scripts\python.exe .\src\preparar_datos.py"
 COMANDO_DETECTAR = r".\.venv\Scripts\python.exe .\src\detectar_alertas.py"
+COMANDO_MAPA = r".\.venv\Scripts\python.exe .\src\preparar_mapa.py"
+
+# Estados del mapa, con las mismas etiquetas que las métricas de la vista general.
+CATEGORIAS_MAPA = {
+    "alerta": "Con alerta experimental",
+    "sin_alerta": "Sin alerta",
+    "no_evaluable": "No evaluables",
+}
 
 # Columnas de docs/contrato_alertas.md. La aplicación las lee por nombre.
 COLUMNAS_ALERTAS = [
@@ -119,6 +132,8 @@ def comandos_para_generar_alertas():
         comandos += [COMANDO_COMPROBAR, COMANDO_PREPARAR]
 
     comandos.append(COMANDO_DETECTAR)
+    if not RUTA_MAPA.is_file():
+        comandos.append(COMANDO_MAPA)
     return comandos
 
 
@@ -127,7 +142,7 @@ def comandos_para_preparar_datos():
     comandos = []
     if not all(ruta.is_file() for ruta in RUTAS_ORIGINALES):
         comandos.append(COMANDO_DESCARGAR)
-    return comandos + [COMANDO_COMPROBAR, COMANDO_PREPARAR]
+    return comandos + [COMANDO_COMPROBAR, COMANDO_PREPARAR, COMANDO_MAPA]
 
 
 def marca_tiempo(ruta):
@@ -180,10 +195,10 @@ def texto_origen(origen, alertas, ruta_alertas):
     )
 
 
-def alertas_desactualizadas():
-    """True si algún dato procesado es posterior a alertas.csv."""
+def alertas_desactualizadas(ruta_alertas=RUTA_ALERTAS):
+    """True si algún dato procesado es posterior a la tabla de alertas en uso."""
     return any(
-        ruta.is_file() and marca_tiempo(ruta) > marca_tiempo(RUTA_ALERTAS)
+        ruta.is_file() and marca_tiempo(ruta) > marca_tiempo(ruta_alertas)
         for ruta in RUTAS_PROCESADOS
     )
 
@@ -240,6 +255,11 @@ def leer_contratos(ruta=RUTA_CONTRATOS):
         parse_dates=["fecha"],
         usecols=["municipio", "fecha", "contratos"],
     )
+
+
+def leer_mapa(ruta=RUTA_MAPA):
+    """Límites municipales simplificados (GeoJSON) de src/preparar_mapa.py."""
+    return json.loads(Path(ruta).read_text(encoding="utf-8"))
 
 
 # ---------------------------------------------------------------
@@ -309,6 +329,26 @@ def tabla_sin_alerta(mes):
     filas = filas.sort_values("municipio", key=clave_orden)
     columnas = ["municipio", "cambio_mensual", "referencia_cambio", "limite_superior"]
     return filas[columnas].reset_index(drop=True)
+
+
+def tabla_mapa(mes):
+    """Estado de cada municipio en el mes, con los textos que muestra el mapa."""
+    tabla = mes[["municipio", "estado_detector", "cambio_mensual", "limite_superior"]].copy()
+    tabla["categoria"] = tabla["estado_detector"].map(
+        {"alerta_experimental": "alerta", "sin_alerta": "sin_alerta"}
+    ).fillna("no_evaluable")
+    tabla["estado"] = tabla["estado_detector"].map(NOMBRES_ESTADO)
+    tabla["texto_cambio"] = [numero(c, signo=True) for c in tabla["cambio_mensual"]]
+    tabla["texto_limite"] = [
+        numero(l, 1, signo=True) if pd.notna(l) else "sin límite" for l in tabla["limite_superior"]
+    ]
+    return tabla.reset_index(drop=True)
+
+
+def municipios_sin_geometria(mapa, municipios_tabla):
+    """Municipios de la tabla que no tienen geometría en el mapa."""
+    en_mapa = {f["properties"]["municipio"] for f in mapa["features"]}
+    return sorted(set(municipios_tabla) - en_mapa)
 
 
 # ---------------------------------------------------------------
