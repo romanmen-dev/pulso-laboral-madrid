@@ -1,14 +1,14 @@
 {
-  "generado": "2026-11-20T13:04:53+01:00",
+  "generado": "2026-11-20T13:54:06+01:00",
   "datos_desde": "2005-01",
   "datos_hasta": "2026-10",
-  "commit": "c14f183e41546af86638305d209866b8b3ef07c2",
+  "commit": "8eca4b365941cb76db9aafa39b1308a061fee969",
   "cadena_con_cambios_sin_commit": false,
   "atribucion": {
-    "fuente": "Comunidad de Madrid. Portal de Datos Abiertos (datos.comunidad.madrid). Fuente de los datos: D. G. del Servicio Público de Empleo.",
+    "fuente": "Comunidad de Madrid. Portal de Datos Abiertos (datos.comunidad.madrid). Fuente de los datos: D. G. del Servicio Público de Empleo. Límites municipales: Información geográfica de la Comunidad de Madrid (Geoportal IDEM).",
     "licencia": "CC BY 4.0",
     "url_licencia": "https://creativecommons.org/licenses/by/4.0/legalcode.es",
-    "modificaciones": "Datos transformados por Pulso Laboral Madrid: series mensuales, nombres de municipio armonizados y alertas experimentales calculadas."
+    "modificaciones": "Datos transformados por Pulso Laboral Madrid: series mensuales, nombres de municipio armonizados, alertas experimentales calculadas y límites municipales simplificados."
   },
   "originales": [
     {
@@ -22,6 +22,18 @@
       "sha256": "a3ecd519dfe302e2c1da96b54c9ea8e1e4581b4ea369a1581357f2761be66866",
       "pagina": "https://datos.comunidad.madrid/dataset/contratos_trabajo_municipio",
       "url": "https://datos.comunidad.madrid/catalogo/dataset/19900d46-e62b-4ab1-a65e-ea0fb83bfdcb/resource/8b41acdd-cb88-404d-8767-e99b2cecc431/download/extraccionesmovimiento-laboral-registrado.-contratos-de-trabajo-por-municipio.-comunidad-de-madr.csv"
+    },
+    {
+      "archivo": "municipios_comunidad_madrid.csv",
+      "sha256": "5f4ee945313b87ae6e6991fbe54e3ea0f346b23de90aa1715920ccafb7b2c902",
+      "pagina": "https://datos.comunidad.madrid/dataset/municipio_comunidad_madrid",
+      "url": "https://datos.comunidad.madrid/dataset/0781c37e-bc64-4143-8029-18865bedbc3d/resource/48010e29-caa0-46c5-ab6e-f498b2dc042f/download/municipio_comunidad_madrid.csv"
+    },
+    {
+      "archivo": "limites_municipales_idem.csv",
+      "sha256": "b8dfcbf41ac9bccc810422b3ebe40347c3eddf0be808f5bb248dd836f78720fd",
+      "pagina": "https://idem.comunidad.madrid/catalogocartografia/srv/spa/catalog.search#/metadata/spacm_divisionesadmin",
+      "url": "https://idem.comunidad.madrid/geoidem/UnidadesAdministrativas/wfs?service=WFS&version=1.1.0&request=GetFeature&typeName=UnidadesAdministrativas:IDEM_CM_UNID_ADMIN&srsName=EPSG:4326&outputFormat=csv"
     }
   ],
   "archivos": [
@@ -45,6 +57,13 @@
       "bytes": 1497969,
       "filas": 46898,
       "sha256": "c378db1841e58cb6b755dac6cdc6c52affcad0a3cb3d24e1f84ab5a6c9a7b6a4"
+    },
+    {
+      "archivo": "municipios_mapa.geojson",
+      "origen": "datos/procesados/municipios_mapa.geojson",
+      "bytes": 282040,
+      "filas": 179,
+      "sha256": "62356bf3dfba35900c23a7e38a1e731adeeb70bb85eedb368177ac796c45befa"
     }
   ]
 }

@@ -137,6 +137,11 @@ def cargar_contratos(ruta, marca_tiempo):
     return datos.leer_contratos(ruta)
 
 
+@st.cache_data(show_spinner="Leyendo el mapa…")
+def cargar_mapa(ruta, marca_tiempo):
+    return datos.leer_mapa(ruta)
+
+
 def cargar_si_existe(ruta, cargar):
     return cargar(str(ruta), datos.marca_tiempo(ruta)) if ruta.is_file() else None
 
@@ -164,14 +169,33 @@ def modo_oscuro():
         return False
 
 
+def ir_a_ficha(municipio):
+    st.session_state["municipio"] = municipio
+    st.session_state["pestana"] = PESTANAS[1]
+    # Una clave nueva deja la tabla y el mapa sin selección al volver a ellos.
+    st.session_state["version_tabla"] = st.session_state.get("version_tabla", 0) + 1
+
+
 def abrir_ficha(clave, municipios_tabla):
     """Al seleccionar una fila de la tabla de alertas, abre su ficha."""
     filas = st.session_state[clave].selection.rows
     if filas:
-        st.session_state["municipio"] = municipios_tabla[filas[0]]
-        st.session_state["pestana"] = PESTANAS[1]
-        # Una clave nueva deja la tabla sin selección al volver a ella.
-        st.session_state["version_tabla"] = st.session_state.get("version_tabla", 0) + 1
+        ir_a_ficha(municipios_tabla[filas[0]])
+
+
+def abrir_ficha_desde_mapa(clave, municipios_por_traza):
+    """Al pinchar un municipio del mapa, abre su ficha."""
+    puntos = st.session_state[clave].selection.get("points", [])
+    if not puntos:
+        return
+    punto = puntos[0]
+    municipio = punto.get("location")
+    if not municipio:
+        try:
+            municipio = municipios_por_traza[punto["curve_number"]][punto["point_index"]]
+        except (KeyError, IndexError, TypeError):
+            return
+    ir_a_ficha(municipio)
 
 
 # ---------------------------------------------------------------
@@ -213,7 +237,36 @@ def grafico(figura):
 # Vista general
 # ---------------------------------------------------------------
 
-def vista_general(alertas, fecha):
+def mapa_del_mes(mes, nombre, fecha, mapa, paleta):
+    st.markdown(f"#### Mapa de {nombre}")
+    if mapa is None:
+        avisar_datos_procesados("el mapa")
+        return
+
+    sin_geometria = datos.municipios_sin_geometria(mapa, mes["municipio"])
+    if sin_geometria:
+        st.warning(f"No hay geometría para: {', '.join(sin_geometria)}.")
+
+    figura = graficos.figura_mapa(mapa, datos.tabla_mapa(mes), paleta)
+    municipios_por_traza = [list(traza.locations) for traza in figura.data]
+    clave = f"mapa_{fecha:%Y%m}_{st.session_state.get('version_tabla', 0)}"
+    st.plotly_chart(
+        figura,
+        width="stretch",
+        config=CONFIG_PLOTLY,
+        key=clave,
+        on_select=lambda: abrir_ficha_desde_mapa(clave, municipios_por_traza),
+        selection_mode="points",
+    )
+    st.caption(
+        "Pulsa en un municipio para abrir su ficha. Los Baldíos y El Redegüelo, "
+        "territorios compartidos por dos municipios, no se colorean. Límites "
+        "municipales: Información geográfica de la Comunidad de Madrid "
+        "(Geoportal IDEM), CC BY 4.0."
+    )
+
+
+def vista_general(alertas, fecha, mapa, paleta):
     mes = datos.filas_mes(alertas, fecha)
     resumen = datos.resumen_mes(mes)
     nombre = datos.nombre_mes(fecha)
@@ -252,6 +305,8 @@ def vista_general(alertas, fecha):
         border=True,
     )
     st.caption(f"{datos.numero(resumen['total'])} municipios en total.")
+
+    mapa_del_mes(mes, nombre, fecha, mapa, paleta)
 
     st.markdown(f"#### Alertas experimentales de {nombre}")
     tabla = datos.tabla_alertas(mes)
@@ -469,7 +524,7 @@ except ValueError as error:
 
 st.warning(AVISO, icon=":material/warning:")
 
-if origen == "local" and datos.alertas_desactualizadas():
+if origen == "local" and datos.alertas_desactualizadas(rutas["alertas"]):
     st.warning(
         "Hay datos procesados más recientes que `resultados/alertas.csv`. "
         f"Vuelve a ejecutar `{datos.COMANDO_DETECTAR}` y recarga la página.",
@@ -502,13 +557,14 @@ with st.sidebar:
 paleta = graficos.paleta(modo_oscuro())
 paro_edad = cargar_si_existe(rutas["paro_edad"], cargar_paro_edad)
 contratos = cargar_si_existe(rutas["contratos"], cargar_contratos)
+mapa = cargar_si_existe(rutas["mapa"], cargar_mapa)
 
 pestana_general, pestana_ficha, pestana_cambios = st.tabs(
     PESTANAS, key="pestana", on_change="rerun"
 )
 
 with pestana_general:
-    vista_general(alertas, fecha)
+    vista_general(alertas, fecha, mapa, paleta)
 
 with pestana_ficha:
     ficha(alertas, fecha, municipio, paro_edad, contratos, paleta)

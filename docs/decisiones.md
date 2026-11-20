@@ -107,3 +107,29 @@ tales hasta que se adopten.
   aplicación.
 - Para actualizar la aplicación publicada hay que repetir la cadena en
   local, ejecutar src/publicar_datos.py y hacer commit de datos/publicados/.
+
+### 20/11/2026 — Mapa de municipios en la vista general
+
+- Decisión: mostrar encima de la tabla de alertas un mapa de los 179
+  municipios coloreado por el estado del mes elegido. Al pinchar un
+  municipio se abre su ficha, igual que con una fila de la tabla.
+- Fuentes: la tabla de municipios del portal, para pasar del nombre al
+  código, y los límites municipales del Geoportal IDEM. Las dos tienen
+  licencia CC BY 4.0 y se descargan con su huella SHA-256, como los demás
+  originales (docs/fuentes_datos.md).
+- Cruce por código INE, no por nombre: los nombres del paro se traducen a
+  código con la tabla de municipios (artículo al final y 8 equivalencias
+  explícitas). src/preparar_mapa.py se detiene si algún municipio no tiene
+  exactamente un término municipal, si sobra alguno o si un nombre no casa.
+- Los 13 enclaves se unen a su municipio. Las 2 comunidades
+  jurisdiccionales (Los Baldíos y El Redegüelo) no se colorean: son
+  territorios compartidos y no pertenecen a un solo municipio.
+- La geometría se simplifica con shapely.coverage_simplify (tolerancia de
+  0,001°, unos 100 m), que no deja huecos ni solapes entre vecinos. Ningún
+  municipio cambia más de un 0,56 % de superficie y el GeoJSON ocupa unos
+  280 KB. shapely solo está en requirements-dev.txt: la aplicación lee el
+  GeoJSON ya simplificado, también desde datos/publicados/.
+- Colores: los mismos que la pestaña de cambios frente al límite (azul sin
+  alerta, naranja alerta experimental, gris no evaluable), comprobados con
+  un validador de paletas para daltonismo en modo claro y oscuro. No se
+  añaden categorías.
