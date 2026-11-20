@@ -3,10 +3,12 @@ import streamlit as st
 
 from src import datos_app as datos
 from src import graficos_app as graficos
+from src import identidad_app as identidad
 
 
 st.set_page_config(
     page_title="Pulso Laboral Madrid",
+    page_icon=str(identidad.RUTA_ICONO),
     layout="wide",
 )
 
@@ -442,6 +444,12 @@ def cambios_frente_al_limite(alertas, fecha, municipio, paleta):
 # Página
 # ---------------------------------------------------------------
 
+st.logo(
+    identidad.svg_para_tema(identidad.RUTA_LOGO, modo_oscuro()),
+    icon_image=identidad.svg_para_tema(identidad.RUTA_ICONO, modo_oscuro()),
+    size="large",
+)
+
 st.title("Pulso Laboral Madrid")
 
 if not datos.RUTA_ALERTAS.is_file():
@@ -507,7 +515,8 @@ with pestana_cambios:
     cambios_frente_al_limite(alertas, fecha, municipio, paleta)
 
 st.divider()
+st.caption(f"Datos: [Portal de Datos Abiertos de la Comunidad de Madrid]({identidad.URL_PORTAL})")
 st.caption(
-    "Fuente: paro registrado por edad y municipio y contratos de trabajo por "
-    "municipio, Comunidad de Madrid. Método y columnas: `docs/contrato_alertas.md`."
+    "Proyecto independiente para DATAMAD 2026; no es una herramienta oficial "
+    "de la Comunidad de Madrid. Método y columnas: `docs/contrato_alertas.md`."
 )
