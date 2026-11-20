@@ -31,6 +31,17 @@ AVISO = (
     "favorable."
 )
 
+# Los contratos se agrupan por el centro de trabajo y cuentan contratos, no
+# personas: no miden lo mismo que el paro. Por eso van en una sección aparte,
+# plegada, al final de la ficha (docs/decisiones.md, 20/11/2026).
+TITULO_CONTRATOS = "Contratos registrados en centros de trabajo del municipio"
+TEXTO_CONTRATOS = (
+    "Esta serie recoge los contratos comunicados cada mes en centros de trabajo "
+    "situados en el municipio, vivan donde vivan las personas contratadas. Se "
+    "cuentan contratos, no personas. Por eso no es directamente comparable con "
+    "el paro registrado, que cuenta personas."
+)
+
 ETIQUETAS = {
     "municipio": "Municipio",
     "fecha": "Mes",
@@ -437,27 +448,29 @@ def ficha(alertas, fecha, municipio, paro_edad, contratos, paleta):
     with st.expander("Detalle técnico"):
         st.dataframe(datos.detalle_tecnico(fila), hide_index=True, width="stretch")
 
-    st.markdown("##### Contexto: contratos de trabajo registrados")
-    serie_contratos = None
-    if contratos is None:
-        avisar_datos_procesados("los contratos")
-    else:
+    with st.expander("Ver los datos de los gráficos"):
+        mostrar_tabla(datos.tabla_datos_ficha(serie))
+        if cambios is not None and not cambios.empty:
+            mostrar_tabla(cambios)
+
+    contratos_del_municipio(contratos, municipio, fecha, paleta)
+
+
+def contratos_del_municipio(contratos, municipio, fecha, paleta):
+    """Sección final y plegada: los contratos no son comparables con el paro."""
+    with st.expander(TITULO_CONTRATOS, expanded=False):
+        st.markdown(TEXTO_CONTRATOS)
+        if contratos is None:
+            avisar_datos_procesados("los contratos")
+            return
+
         serie_contratos = datos.contratos_municipio(contratos, municipio, fecha, MESES_FICHA)
         grafico(graficos.figura_contratos(serie_contratos, fecha, paleta))
         for aviso in datos.avisos_contratos(municipio, serie_contratos):
             st.info(aviso, icon=":material/info:")
-        st.caption(
-            "Contratos de trabajo registrados en el municipio cada mes. Se "
-            "muestran como contexto: no intervienen en el detector."
-        )
-
-    with st.expander("Ver los datos de los gráficos"):
-        if serie_contratos is not None:
-            mostrar_tabla(datos.tabla_datos_ficha(serie, serie_contratos))
-        else:
-            mostrar_tabla(serie[["fecha", "paro_total", "cambio_mensual"]].iloc[::-1])
-        if cambios is not None and not cambios.empty:
-            mostrar_tabla(cambios)
+        st.caption("No intervienen en el detector ni en las alertas.")
+        # Streamlit no permite un desplegable dentro de otro: la tabla va a la vista.
+        mostrar_tabla(datos.tabla_contratos(serie_contratos), filas_visibles=6)
 
 
 # ---------------------------------------------------------------

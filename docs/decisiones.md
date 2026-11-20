@@ -133,3 +133,28 @@ tales hasta que se adopten.
   alerta, naranja alerta experimental, gris no evaluable), comprobados con
   un validador de paletas para daltonismo en modo claro y oscuro. No se
   añaden categorías.
+
+### 20/11/2026 — Contratos fuera de la parte principal de la ficha
+
+- Planteamiento de Roman: el paro y los contratos no miden la misma
+  población. Según las notas metodológicas, el paro registrado se asigna al
+  municipio de residencia de la persona y los contratos, a la localidad del
+  centro de trabajo. Además, se cuentan contratos, no personas.
+- Comprobación (docs/fuentes_datos.md): la agrupación de los contratos por
+  el centro de trabajo y la diferencia entre contratos y personas constan en
+  las notas metodológicas v09 de la D. G. del Servicio Público de Empleo. La
+  asignación del paro a la residencia la recogen las notas del Ayuntamiento
+  de Madrid y del Instituto Aragonés de Estadística, con datos del SEPE; para
+  este dataset es probable, pero la fuente no lo confirma.
+- Decisión: sacar los contratos de la parte principal de la ficha. Esa
+  parte muestra solo el paro: estado del mes, cifras, evolución, edades,
+  interpretación y detalle técnico.
+- Los contratos pasan a una sección al final de la ficha, plegada por
+  defecto: «Contratos registrados en centros de trabajo del municipio». Un
+  texto explica qué recoge la serie y por qué no es directamente comparable
+  con el paro, y se mantienen los avisos de las incidencias de mayo de 2026
+  y de Velilla de San Antonio (19/11/2026).
+- Sin doble eje ni cocientes entre contratos y paro. La tabla con los datos
+  de los gráficos del paro ya no incluye los contratos: tienen su propia
+  tabla en la sección.
+- Los contratos siguen sin intervenir en el detector.

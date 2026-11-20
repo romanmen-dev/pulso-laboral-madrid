@@ -428,11 +428,16 @@ def avisos_contratos(municipio, serie_contratos):
     return avisos
 
 
-def tabla_datos_ficha(serie, contratos):
-    """Valores de los gráficos de la ficha, como tabla."""
-    tabla = serie[["fecha", "paro_total", "cambio_mensual"]].merge(
-        contratos[["fecha", "contratos"]], on="fecha", how="left"
-    )
+def tabla_datos_ficha(serie):
+    """Valores del gráfico de paro de la ficha, como tabla. Sin los contratos:
+    no se presentan junto al paro porque no miden lo mismo."""
+    tabla = serie[["fecha", "paro_total", "cambio_mensual"]]
+    return tabla.sort_values("fecha", ascending=False).reset_index(drop=True)
+
+
+def tabla_contratos(serie_contratos):
+    """Valores del gráfico de contratos, como tabla."""
+    tabla = serie_contratos[["fecha", "contratos"]]
     return tabla.sort_values("fecha", ascending=False).reset_index(drop=True)
 
 
