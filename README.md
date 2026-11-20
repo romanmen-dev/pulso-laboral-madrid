@@ -1,35 +1,131 @@
-# Pulso Laboral Madrid
+<p align="center">
+  <img src="assets/icono.svg" alt="" width="88">
+</p>
 
-Proyecto para DATAMAD 2026 desarrollado por Roman y Rodrigo.
+<h1 align="center">Pulso Laboral Madrid</h1>
 
-## Objetivo
+<p align="center">
+  <strong>Detección temprana de aumentos inusuales del paro registrado en los 179 municipios de la Comunidad de Madrid</strong>
+</p>
 
-Desarrollar una herramienta que identifique cambios inusuales en el paro registrado de los municipios de la Comunidad de Madrid, utilizando datos abiertos y series históricas.
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licencia-MIT-blue" alt="Licencia MIT"></a>
+  <img src="https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&amp;logoColor=white" alt="Python 3.12 o posterior">
+</p>
 
-La propuesta busca detectar aumentos superiores a lo esperable según la evolución temporal y mostrar qué grupos de edad concentran la variación, para facilitar la revisión de casos por parte de los técnicos de empleo.
+<!-- Sustituir <ENLACE DE LA APP> por la dirección de la aplicación en Streamlit Community Cloud. -->
+<p align="center">
+  <a href="<ENLACE DE LA APP>"><img src="https://img.shields.io/badge/Abrir_la_aplicaci%C3%B3n-C8102E?style=for-the-badge&amp;logo=streamlit&amp;logoColor=white" alt="Abrir la aplicación"></a>
+</p>
 
-## Equipo
+Cada mes cambia el paro registrado de los 179 municipios de la Comunidad de Madrid. Pulso Laboral Madrid compara cada cambio con lo habitual en ese municipio y en esa época del año, y señala las subidas que se salen de lo esperable para que se revisen a tiempo. Usa solo datos abiertos y se puede probar en la [aplicación publicada](<ENLACE DE LA APP>).
 
-- Roman — Estadística Aplicada. Auditoría de datos, análisis exploratorio, definición y evaluación de las alertas.
-- Rodrigo — Ingeniería de Datos e Inteligencia Artificial. Descarga y preparación de datos, estructura del proyecto y aplicación.
+> Las alertas son **experimentales** y todavía no están validadas.
 
-Ambos revisarán los resultados y documentarán las decisiones metodológicas.
+[Para quién](#para-quién) · [Caso de uso](#caso-de-uso-ilustrativo) · [Cómo funciona](#cómo-funciona) · [Resultados](#resultados) · [Datos](#datos) · [Limitaciones](#limitaciones) · [Instalación](#instalación-y-reproducción) · [Equipo](#equipo)
 
-## Estado actual
+![Vista general de octubre de 2026 en la aplicación: 15 municipios con alerta experimental, 157 sin alerta y 7 no evaluables, con la tabla de alertas](docs/capturas/vista_general_octubre_2026.png)
 
-- Descarga reproducible de los datos con verificación SHA-256 (`src/descargar_datos.py`).
-- Comprobación y preparación de las series mensuales, con los nombres de municipio armonizados entre paro y contratos.
-- Exploración del paro y definición provisional de las alertas (`notebooks/01_exploracion_paro.ipynb`).
-- Tabla de alertas `resultados/alertas.csv`, generada con `src/detectar_alertas.py` según `docs/contrato_alertas.md`. Pendiente de revisión por Roman.
-- En curso: evaluación del detector inicial y aplicación Streamlit.
-- Pendientes: validación histórica y presentación.
+<p align="center"><em>Vista general de octubre de 2026 en la aplicación.</em></p>
 
-## Requisitos
+## Para quién
+
+Está pensada para estos usuarios potenciales. Todavía no se ha probado con ellos.
+
+- **Técnicos de empleo:** ver qué municipios tienen este mes una subida del paro inusual y qué grupo de edad la concentra.
+- **Servicios regionales de empleo:** una vista conjunta de los 179 municipios para decidir qué casos revisar primero.
+- **Agentes de desarrollo local:** seguir mes a mes el paro y los contratos de su municipio frente a su propio historial.
+- **Investigadores:** una serie mensual armonizada de 2005 a 2026 y un detector documentado y reproducible.
+
+## Caso de uso (ilustrativo)
+
+> Ejemplo ilustrativo con los datos reales de octubre de 2026. Muestra cómo se usaría la herramienta; no describe un uso real.
+
+1. **Detectar.** En la vista general de octubre de 2026, Madrid aparece entre los 15 municipios con alerta experimental.
+2. **Abrir la ficha.** Al seleccionar su fila se abre la ficha: el paro subió 2.130 personas, cuando lo habitual en octubre era +61 y el límite de alerta, +826. El grupo con mayor aumento es el de 25 a 44 años (+1.074).
+3. **Contrastar.** La pestaña «Cambios frente al límite» muestra si la subida es aislada o se repite en otros meses, y los contratos del municipio sirven de contexto. El técnico lo cruza con la información local que conozca.
+4. **Decidir si investigar.** La alerta no explica la causa: indica que la subida merece una revisión. Investigar o no es una decisión del técnico.
+
+## Cómo funciona
+
+```mermaid
+flowchart LR
+    A["Portal de Datos Abiertos<br/>de la Comunidad de Madrid"] --> B["Descarga<br/>verificada con SHA-256"]
+    B --> C["Preparación<br/>series mensuales"]
+    C --> D["Detector<br/>mediana y MAD"]
+    D --> E["Aplicación<br/>Streamlit"]
+```
+
+Cada paso es un script de `src/` (ver [Instalación y reproducción](#instalación-y-reproducción)). La regla del detector, para cada municipio y mes:
+
+1. **Cambio mensual:** paro del mes menos paro del mes anterior.
+2. **Cambio habitual:** mediana de los cambios del mismo mes en los cinco años anteriores. El mes evaluado no entra en su propia referencia.
+3. **Límite de alerta:** cambio habitual + 3 × 1,4826 × MAD de esos cinco cambios.
+4. **Alerta experimental:** el paro sube y el cambio supera el límite. Con menos de cinco cambios o con MAD igual a cero, el mes no es evaluable.
+
+**Ejemplo: Madrid, octubre de 2026.** El paro subió **+2.130** personas. Lo habitual en octubre (mediana de 2021 a 2025) era +61 y el límite, **+826**, así que se marca como alerta experimental: la subida supera el límite en 1.304 personas.
+
+El método está en [`notebooks/02_detector_inicial.ipynb`](notebooks/02_detector_inicial.ipynb) y el formato de los resultados, en [`docs/contrato_alertas.md`](docs/contrato_alertas.md).
+
+## Resultados
+
+Cifras calculadas sobre la tabla de alertas que usa la aplicación ([`datos/publicados/alertas.csv`](datos/publicados/alertas.csv)).
+
+**Octubre de 2026, último mes disponible:**
+
+| Estado | Municipios |
+|---|---:|
+| Con alerta experimental | 15 |
+| Sin alerta | 157 |
+| No evaluables (dispersión cero) | 7 |
+| **Total** | **179** |
+
+**Serie completa, de enero de 2005 a octubre de 2026 (46.898 combinaciones de municipio y mes):**
+
+- 1.859 alertas experimentales, el 5,5 % de los 33.739 meses evaluables. Es la frecuencia de alertas, no una medida de acierto.
+- 31.880 meses sin alerta.
+- 13.159 meses no evaluables: 10.919 por historial insuficiente (los primeros 61 meses de cada municipio, de enero de 2005 a enero de 2010) y 2.240 por dispersión cero.
+
+### Validación
+
+En curso. Roman está evaluando el comportamiento histórico del detector ([`notebooks/03_evaluacion_historica.ipynb`](notebooks/03_evaluacion_historica.ipynb) y [`docs/decisiones.md`](docs/decisiones.md)). Este apartado se completará con sus resultados.
+
+## Datos
+
+| Conjunto de datos | Uso |
+|---|---|
+| [Paro registrado, por edad y municipio](https://datos.comunidad.madrid/dataset/paro_registrado_edad_municipio) | Serie principal: detector y desglose por edad |
+| [Contratos de trabajo, por municipio](https://datos.comunidad.madrid/dataset/contratos_trabajo_municipio) | Solo contexto en la ficha: no interviene en el detector |
+
+- **Cobertura:** 179 municipios, de enero de 2005 a octubre de 2026 (262 meses). Versión descargada el 18/11/2026 y verificada con su huella SHA-256.
+- **Licencia:** [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/legalcode.es). Datos del Portal de Datos Abiertos de la Comunidad de Madrid, publicados por su Instituto de Estadística. Fuente: D. G. del Servicio Público de Empleo. Este proyecto los transforma: series mensuales, nombres de municipio armonizados y alertas calculadas.
+- **Incidencias documentadas en los contratos**, presentes en el archivo original y sin corregir. La aplicación avisa de ellas en la ficha:
+  - Mayo de 2026: 96.263 contratos, frente a 176.830 en abril y 233.453 en junio. Bajan 167 de los 178 municipios comparables.
+  - Velilla de San Antonio: 368 contratos todos los meses desde septiembre de 2025.
+
+Más detalle en [`docs/fuentes_datos.md`](docs/fuentes_datos.md).
+
+## Limitaciones
+
+> **Una alerta estadística no demuestra por sí sola un deterioro del mercado laboral ni identifica sus causas: señala una variación que merece ser investigada.**
+
+- Las alertas son experimentales y el umbral de 3 es provisional, pendiente de la validación.
+- La referencia usa solo cinco cambios, así que su estimación es inestable. Con poca dispersión histórica, la puntuación puede ser alta aunque la subida sea de pocas personas. La puntuación no es una probabilidad ni una medida de gravedad.
+- Los meses con dispersión cero no se pueden evaluar. Se concentran en municipios con poco paro registrado.
+- El método compara el mismo mes de años anteriores, pero no modeliza la tendencia reciente.
+- El grupo con mayor aumento no indica una anomalía propia de ese grupo.
+- El paro total es la suma de los tres grupos de edad y está pendiente de contraste con los totales oficiales.
+
+Las decisiones metodológicas y sus motivos están en [`docs/decisiones.md`](docs/decisiones.md).
+
+## Instalación y reproducción
+
+### Requisitos
 
 Estas instrucciones están preparadas para Windows y PowerShell.
 
 - Git.
-- Python 3.13 o posterior. El proyecto también se ha ejecutado con Python 3.14.
+- Python 3.12 o posterior. La aplicación publicada usa Python 3.12; el proyecto también se ha ejecutado con Python 3.14.
 - Visual Studio Code.
 - Extensiones Python y Jupyter de Microsoft.
 - Acceso al repositorio de GitHub. Para subir cambios, hay que aceptar la invitación como colaborador.
@@ -41,11 +137,11 @@ git --version
 python --version
 ```
 
-## Instalación inicial
+### Instalación inicial
 
 Cada integrante realiza estos pasos una vez en su ordenador.
 
-### 1. Clonar el repositorio
+#### 1. Clonar el repositorio
 
 En GitHub, abrir este repositorio y copiar su dirección desde Code → HTTPS.
 
@@ -63,7 +159,7 @@ Abrir esta carpeta en VS Code mediante Archivo → Abrir carpeta.
 
 Los siguientes comandos se ejecutan desde la carpeta principal del proyecto, donde se encuentra `app.py`.
 
-### 2. Crear el entorno
+#### 2. Crear el entorno
 
 ```powershell
 python -m venv .venv
@@ -71,7 +167,7 @@ python -m venv .venv
 
 Cada integrante crea su propio entorno `.venv` en su ordenador.
 
-### 3. Instalar las dependencias
+#### 3. Instalar las dependencias
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
@@ -82,7 +178,7 @@ Cada integrante crea su propio entorno `.venv` en su ordenador.
 - `requirements.txt`: lo mínimo para la aplicación. Es lo que instala Streamlit Community Cloud.
 - `requirements-dev.txt`: añade la cadena de datos, Jupyter y las herramientas de desarrollo.
 
-### 4. Seleccionar el intérprete en VS Code
+#### 4. Seleccionar el intérprete en VS Code
 
 1. Pulsar Ctrl + Shift + P.
 2. Buscar Python: Select Interpreter.
@@ -90,7 +186,7 @@ Cada integrante crea su propio entorno `.venv` en su ordenador.
 
 En los cuadernos Jupyter, seleccionar también este entorno mediante Select Kernel.
 
-### 5. Ejecutar la aplicación
+#### 5. Ejecutar la aplicación
 
 ```powershell
 .\.venv\Scripts\python.exe -m streamlit run app.py
@@ -98,7 +194,7 @@ En los cuadernos Jupyter, seleccionar también este entorno mediante Select Kern
 
 Abrir en el navegador la dirección que figure como Local URL en la terminal, normalmente http://localhost:8501.
 
-La aplicación lee `resultados/alertas.csv` y muestra la vista general del último mes. Si ese archivo todavía no existe, indica los comandos que hay que ejecutar para generarlo (ver «Datos y reproducibilidad»).
+La aplicación usa las tablas locales si están todas y, si no, la copia de `datos/publicados/` incluida en el repositorio, así que funciona nada más clonar. La barra lateral indica de dónde salen los datos y hasta qué mes llegan. Si no encuentra ninguna de las dos, indica los comandos que hay que ejecutar (ver «Datos y reproducibilidad»).
 
 Si se modifica un archivo de `src/` con la aplicación abierta y no se ven los cambios, detenerla y volver a ejecutarla.
 
@@ -106,127 +202,7 @@ Mantener la terminal abierta mientras se utiliza la aplicación. Para detenerla,
 
 Cada ordenador ejecuta su propia copia de la aplicación.
 
-## Organización del proyecto
-
-| Ruta | Contenido |
-|---|---|
-| `app.py` | Entrada de la aplicación Streamlit |
-| `.streamlit/config.toml` | Tema de la aplicación (modo claro y oscuro) |
-| `assets/` | Logo e icono propios del proyecto, en SVG |
-| `requirements.txt` | Dependencias mínimas de la aplicación |
-| `requirements-dev.txt` | Dependencias de desarrollo (incluye `requirements.txt`) |
-| `datos/originales/` | Ficheros descargados de las fuentes |
-| `datos/procesados/` | Tablas generadas por la preparación |
-| `datos/publicados/` | Copia versionada de los datos que lee la aplicación publicada |
-| `notebooks/` | Exploración y análisis |
-| `src/` | Código reutilizable |
-| `resultados/` | Informes de comprobación, registros de descarga, tablas y gráficos |
-| `docs/` | Fuentes y decisiones metodológicas |
-
-Los archivos `.gitkeep` permiten conservar las carpetas vacías en Git.
-
-## Cómo trabajar sincronizados
-
-GitHub contiene el trabajo compartido. Cada integrante trabaja en una copia local.
-
-Guardar un archivo en VS Code modifica la copia local. Para compartirlo hay que crear un commit y subirlo con push. El otro integrante recibe los cambios mediante pull.
-
-### Antes de empezar una tarea
-
-Comprobar si hay cambios locales pendientes:
-
-```powershell
-git status
-```
-
-Si existen cambios, guardarlos en la rama correspondiente antes de cambiar de rama.
-
-Con el trabajo anterior guardado, actualizar la rama principal:
-
-```powershell
-git switch main
-git pull --ff-only
-```
-
-Crear una rama nueva para la tarea. Por ejemplo, Rodrigo puede usar:
-
-```powershell
-git switch -c rodrigo/descarga-datos
-```
-
-Roman puede usar:
-
-```powershell
-git switch -c roman/exploracion-inicial
-```
-
-Estos comandos crean ramas nuevas. Para volver a una rama existente se utiliza `git switch` seguido de su nombre.
-
-### Guardar y subir una tarea
-
-Guardar los archivos en VS Code y revisar los cambios:
-
-```powershell
-git status
-git diff
-```
-
-Después:
-
-```powershell
-git add .
-git commit -m "Describe brevemente el cambio realizado"
-git push -u origin HEAD
-```
-
-Sustituir el mensaje del commit por una descripción concreta.
-
-### Incorporar cambios al proyecto compartido
-
-1. Abrir el repositorio en GitHub.
-2. Crear una pull request desde la rama de la tarea hacia `main`.
-3. Explicar qué se ha cambiado y cómo se ha comprobado.
-4. Pedir al otro integrante que revise los archivos.
-5. Fusionar la pull request cuando esté revisada.
-
-Después de la fusión, ambos actualizan su copia de `main`, con sus cambios locales previamente guardados:
-
-```powershell
-git switch main
-git pull --ff-only
-```
-
-### Actualizar una tarea que sigue en curso
-
-Con los cambios de la tarea guardados en un commit, ejecutar desde su rama:
-
-```powershell
-git fetch origin
-git merge origin/main
-```
-
-Esto incorpora el trabajo que ya se haya fusionado en la rama principal.
-
-Si aparecen conflictos, revisar conjuntamente los archivos afectados antes de continuar.
-
-## Dependencias
-
-Cuando cambie `requirements.txt` o `requirements-dev.txt`, actualizar el entorno local:
-
-```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
-```
-
-Si alguien añade una biblioteca, debe instalarla dentro de `.venv` y añadirla a mano, con su versión exacta (`paquete==versión`), en el archivo que corresponda:
-
-- `requirements.txt`, si la usa la aplicación (`app.py` o `src/*_app.py`).
-- `requirements-dev.txt`, si solo la usan los scripts de datos o los cuadernos.
-
-No sobrescribir `requirements.txt` con `pip freeze`: incluiría paquetes de Windows y de Jupyter que no se pueden o no se deben instalar en Streamlit Community Cloud.
-
-Incluir ese cambio en la pull request y avisar al otro integrante.
-
-## Datos y reproducibilidad
+### Datos y reproducibilidad
 
 Los CSV originales y procesados no se incluyen en GitHub: `.gitignore` excluye el contenido de `datos/originales/` y `datos/procesados/`, salvo sus `.gitkeep`. Clonar o actualizar el repositorio descarga el código, y los datos se obtienen con los pasos siguientes, desde la carpeta principal del proyecto.
 
@@ -234,7 +210,7 @@ La única excepción es `datos/publicados/`: una copia versionada de las tablas 
 
 Las páginas de origen están documentadas en `docs/fuentes_datos.md`.
 
-### 1. Descargar los datos originales
+#### 1. Descargar los datos originales
 
 ```powershell
 .\.venv\Scripts\python.exe .\src\descargar_datos.py
@@ -255,7 +231,7 @@ Cada ejecución deja un registro en `resultados/descargas/` con la dirección, l
 
 Si el portal publica una versión nueva, la huella no coincidirá y el script se detendrá sin modificar nada. Es intencionado: para usar datos nuevos hay que revisarlos y actualizar las huellas en `src/descargar_datos.py`.
 
-### 2. Comprobar y preparar los datos
+#### 2. Comprobar y preparar los datos
 
 ```powershell
 .\.venv\Scripts\python.exe .\src\comprobar_datos.py
@@ -287,7 +263,7 @@ así que las dos tablas se pueden cruzar por `municipio`.
 El paro total calculado aún está pendiente de contraste con
 una fuente independiente de totales oficiales.
 
-### 3. Detectar alertas
+#### 3. Detectar alertas
 
 ```powershell
 .\.venv\Scripts\python.exe .\src\detectar_alertas.py
@@ -299,7 +275,7 @@ Su formato se describe en `docs/contrato_alertas.md`. Antes de escribirlo,
 comprueba las reglas del contrato y se detiene si alguna falla.
 El archivo no se incluye en GitHub.
 
-### 4. Publicar los datos de la aplicación
+#### 4. Publicar los datos de la aplicación
 
 ```powershell
 .\.venv\Scripts\python.exe .\src\publicar_datos.py
@@ -309,10 +285,144 @@ Copia a `datos/publicados/` lo que lee la aplicación (`resultados/alertas.csv`,
 
 Para reproducir la revisión de las incidencias de los contratos (mayo de 2026, Velilla de San Antonio y redondeo a múltiplos de 5), ejecutar `.\.venv\Scripts\python.exe .\src\investigar_contratos.py`: no modifica datos y escribe sus resultados en `resultados/investigacion_contratos/` (ver `docs/decisiones.md`).
 
-## Acuerdos de trabajo
+### Organización del proyecto
+
+| Ruta | Contenido |
+|---|---|
+| `app.py` | Entrada de la aplicación Streamlit |
+| `.streamlit/config.toml` | Tema de la aplicación (modo claro y oscuro) |
+| `assets/` | Logo e icono propios del proyecto, en SVG |
+| `requirements.txt` | Dependencias mínimas de la aplicación |
+| `requirements-dev.txt` | Dependencias de desarrollo (incluye `requirements.txt`) |
+| `datos/originales/` | Ficheros descargados de las fuentes |
+| `datos/procesados/` | Tablas generadas por la preparación |
+| `datos/publicados/` | Copia versionada de los datos que lee la aplicación publicada |
+| `notebooks/` | Exploración y análisis |
+| `src/` | Código reutilizable |
+| `resultados/` | Informes de comprobación, registros de descarga, tablas y gráficos |
+| `docs/` | Fuentes y decisiones metodológicas |
+
+Los archivos `.gitkeep` permiten conservar las carpetas vacías en Git.
+
+### Cómo trabajar sincronizados
+
+GitHub contiene el trabajo compartido. Cada integrante trabaja en una copia local.
+
+Guardar un archivo en VS Code modifica la copia local. Para compartirlo hay que crear un commit y subirlo con push. El otro integrante recibe los cambios mediante pull.
+
+#### Antes de empezar una tarea
+
+Comprobar si hay cambios locales pendientes:
+
+```powershell
+git status
+```
+
+Si existen cambios, guardarlos en la rama correspondiente antes de cambiar de rama.
+
+Con el trabajo anterior guardado, actualizar la rama principal:
+
+```powershell
+git switch main
+git pull --ff-only
+```
+
+Crear una rama nueva para la tarea. Por ejemplo, Rodrigo puede usar:
+
+```powershell
+git switch -c rodrigo/descarga-datos
+```
+
+Roman puede usar:
+
+```powershell
+git switch -c roman/exploracion-inicial
+```
+
+Estos comandos crean ramas nuevas. Para volver a una rama existente se utiliza `git switch` seguido de su nombre.
+
+#### Guardar y subir una tarea
+
+Guardar los archivos en VS Code y revisar los cambios:
+
+```powershell
+git status
+git diff
+```
+
+Después:
+
+```powershell
+git add .
+git commit -m "Describe brevemente el cambio realizado"
+git push -u origin HEAD
+```
+
+Sustituir el mensaje del commit por una descripción concreta.
+
+#### Incorporar cambios al proyecto compartido
+
+1. Abrir el repositorio en GitHub.
+2. Crear una pull request desde la rama de la tarea hacia `main`.
+3. Explicar qué se ha cambiado y cómo se ha comprobado.
+4. Pedir al otro integrante que revise los archivos.
+5. Fusionar la pull request cuando esté revisada.
+
+Después de la fusión, ambos actualizan su copia de `main`, con sus cambios locales previamente guardados:
+
+```powershell
+git switch main
+git pull --ff-only
+```
+
+#### Actualizar una tarea que sigue en curso
+
+Con los cambios de la tarea guardados en un commit, ejecutar desde su rama:
+
+```powershell
+git fetch origin
+git merge origin/main
+```
+
+Esto incorpora el trabajo que ya se haya fusionado en la rama principal.
+
+Si aparecen conflictos, revisar conjuntamente los archivos afectados antes de continuar.
+
+### Dependencias
+
+Cuando cambie `requirements.txt` o `requirements-dev.txt`, actualizar el entorno local:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+```
+
+Si alguien añade una biblioteca, debe instalarla dentro de `.venv` y añadirla a mano, con su versión exacta (`paquete==versión`), en el archivo que corresponda:
+
+- `requirements.txt`, si la usa la aplicación (`app.py` o `src/*_app.py`).
+- `requirements-dev.txt`, si solo la usan los scripts de datos o los cuadernos.
+
+No sobrescribir `requirements.txt` con `pip freeze`: incluiría paquetes de Windows y de Jupyter que no se pueden o no se deben instalar en Streamlit Community Cloud.
+
+Incluir ese cambio en la pull request y avisar al otro integrante.
+
+### Acuerdos de trabajo
 
 - Comunicar qué tarea y archivos está modificando cada integrante.
 - Acordar los nombres de columnas y formatos antes de integrar análisis y aplicación.
 - Utilizar rutas relativas al proyecto.
 - Guardar las decisiones metodológicas en `docs/`.
 - Mantener actualizado este README cuando cambie la instalación o la ejecución.
+
+## Equipo
+
+Proyecto para DATAMAD 2026.
+
+- **Roman** (Estadística Aplicada): método y validación.
+- **Rodrigo** (Ingeniería de Datos e Inteligencia Artificial): datos, ingeniería y aplicación.
+
+## Licencia
+
+- **Código:** licencia MIT. Ver [`LICENSE`](LICENSE).
+- **Datos:** CC BY 4.0 del Portal de Datos Abiertos de la Comunidad de Madrid. Ver [Datos](#datos).
+
+Pulso Laboral Madrid es un proyecto independiente: no es una herramienta oficial de la Comunidad de Madrid. El logo es propio.
