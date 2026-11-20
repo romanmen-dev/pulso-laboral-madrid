@@ -52,3 +52,27 @@ tales hasta que se adopten.
 - La ficha avisa de ambas incidencias cuando el gráfico de contratos
   incluye meses afectados. Pendiente: consultar a la D. G. del Servicio
   Público de Empleo si procede.
+
+### 20/11/2026 — Cobertura y casos con MAD cero
+
+- Decisión: mantener los casos con MAD cero como no evaluables,
+  conservando sus datos y el estado `dispersion_cero`.
+- Motivo: la puntuación robusta requiere una escala positiva.
+  No disponer de puntuación no equivale a ausencia de alerta.
+- Presentar conjuntamente el porcentaje de alertas entre evaluables
+  y la cobertura sobre el total de municipios.
+- Pendiente: analizar la recurrencia de MAD cero por municipio
+  antes de proponer un tratamiento alternativo.
+
+  ### 20/11/2026 — Limitación de cobertura en series pequeñas
+
+- Constatación: la MAD cero se concentra en municipios con volúmenes
+  pequeños de paro registrado y puede impedir su evaluación durante
+  gran parte del periodo.
+- Decisión: mantener explícitos los casos no evaluables y documentar
+  la cobertura por municipio, además de la cobertura mensual agregada.
+- Motivo: una cobertura global elevada oculta limitaciones persistentes
+  en determinados municipios.
+- Próxima comprobación: comparar ventanas históricas sobre un periodo
+  común, evaluando cobertura y comportamiento de las alertas.
+- No modificar todavía el detector utilizado por la aplicación.
