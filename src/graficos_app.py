@@ -169,7 +169,8 @@ def figura_edad(cambios, grupo_principal, p):
 
 
 def figura_contratos(serie, fecha, p):
-    """Contratos registrados, como contexto. El mes elegido, destacado."""
+    """Contratos registrados en centros de trabajo del municipio, en su propio
+    gráfico: sin eje compartido ni cocientes con el paro. El mes elegido, destacado."""
     fig = go.Figure()
     fig.add_bar(
         x=serie["fecha"],

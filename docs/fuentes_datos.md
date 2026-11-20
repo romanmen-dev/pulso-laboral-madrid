@@ -11,6 +11,25 @@ noviembre de 2026 (municipios y límites municipales).
 - Archivo local: datos/originales/paro_edad_municipio.csv
 - Uso previsto: serie principal del análisis de paro y desglose por edad.
 - Periodo temporal y cobertura: pendientes de comprobar en el CSV.
+- Asignación al territorio: la ficha del dataset no indica a qué municipio
+  se asigna cada persona en paro; su descripción es «Sin información
+  adicional.». Las notas metodológicas del Ayuntamiento de Madrid y del
+  Instituto Aragonés de Estadística, que trabajan con datos del SEPE, lo
+  asignan al municipio de residencia del parado:
+  - Ayuntamiento de Madrid, para la estadística de la ciudad de Madrid, en
+    la definición de municipio de residencia:
+    > Municipio en el que reside el demandante de empleo en su inscripción
+  - Instituto Aragonés de Estadística:
+    > El domicilio utilizado para la distribución del paro registrado
+    > municipal es el de residencia de cada uno de los parados.
+
+  Es probable que este dataset siga el mismo criterio, pero la fuente no lo
+  confirma. Fuentes:
+  - Ayuntamiento de Madrid, notas metodológicas del paro registrado de la
+    ciudad de Madrid:
+    https://www.madrid.es/UnidadesDescentralizadas/UDCEstadistica/Nuevaweb/Mercado%20de%20Trabajo/Paro/nuevo%20paro/2024%20y%202025/NOTAS%20METODOL%C3%93GICAS%20PARO%20REGISTRADO%20AYUNTAMIENTO%20DE%20MADRID.pdf
+  - Instituto Aragonés de Estadística, «Paro registrado. Metodología»:
+    https://www.aragon.es/documents/20127/674325/Paro_registrado_Metodologia.pdf/90b8117b-0309-75dd-f49c-ba8df018308c
 
 ## Contratos de trabajo por municipio
 
@@ -20,6 +39,27 @@ noviembre de 2026 (municipios y límites municipales).
 - Archivo local: datos/originales/contratos_municipio.csv
 - Uso previsto: información complementaria sobre contratación.
 - Periodo temporal y cobertura: pendientes de comprobar en el CSV.
+- Asignación al territorio y unidad: los contratos se agrupan por la
+  localidad del centro de trabajo, vivan donde vivan las personas
+  contratadas, y se cuentan contratos, no personas. La ficha del dataset no
+  lo explica; solo indica «Unidad: Contratos». Lo dicen las notas
+  metodológicas del Cuadro de Mando de Entidades Locales de la D. G. del
+  Servicio Público de Empleo (versión v09), que usan la misma Estadística de
+  Contratos Registrados:
+  > Los datos estadísticos de contratos de un mes determinado son los
+  > comunicados por las personas empresarias durante ese mes
+  > (independientemente de cuando se inicie el contrato) y son agrupados
+  > según la localidad del centro de trabajo.
+
+  > Personas contratadas: Las personas únicas que han firmado un contrato
+  > registrado durante el periodo de referencia.
+
+  Consultadas el 20/11/2026 en
+  https://www.comunidad.madrid/docs/assets/2024/12/04/notas_metodologicas_v09.pdf,
+  enlazadas desde
+  https://www.comunidad.madrid/empleo/estadisticas-mercado-trabajo.
+  Por eso los contratos y el paro no son directamente comparables, y la
+  ficha muestra los contratos aparte (docs/decisiones.md, 20/11/2026).
 - Notas del portal, copiadas literalmente el 19/11/2026:
   > A partir de octubre de 2021, la categoría "No distribuidos" incluye
   > cuidadoras no profesionales, así como las categorías "Otras provincias"
