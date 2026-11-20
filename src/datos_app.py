@@ -2,9 +2,10 @@
 
 Este módulo no contiene código de interfaz ni recalcula el detector:
 lee resultados/alertas.csv, cuyo formato fija docs/contrato_alertas.md,
-y las tablas de datos/procesados/.
+y las tablas de datos/procesados/, o su copia en datos/publicados/.
 """
 
+import json
 import unicodedata
 from datetime import datetime
 from pathlib import Path
@@ -26,6 +27,17 @@ RUTAS_ORIGINALES = [
     ORIGINALES / "contratos_municipio.csv",
 ]
 RUTAS_PROCESADOS = [RUTA_PARO_TOTAL, RUTA_PARO_EDAD, RUTA_CONTRATOS]
+
+# Archivos que lee la aplicación. Se usan los locales si están todos; si no,
+# la copia versionada en datos/publicados/ (src/publicar_datos.py y
+# docs/decisiones.md). Nunca se mezclan archivos de los dos orígenes.
+PUBLICADOS = RAIZ / "datos" / "publicados"
+RUTA_PUBLICACION = PUBLICADOS / "publicacion.json"
+ARCHIVOS_APP = {
+    "alertas": RUTA_ALERTAS,
+    "paro_edad": RUTA_PARO_EDAD,
+    "contratos": RUTA_CONTRATOS,
+}
 
 COMANDO_DESCARGAR = r".\.venv\Scripts\python.exe .\src\descargar_datos.py"
 COMANDO_COMPROBAR = r".\.venv\Scripts\python.exe .\src\comprobar_datos.py"
@@ -125,6 +137,47 @@ def marca_tiempo(ruta):
 
 def fecha_modificacion(ruta):
     return datetime.fromtimestamp(marca_tiempo(ruta))
+
+
+def origen_datos():
+    """'local', 'publicado' o None si no hay datos que mostrar."""
+    if all(ruta.is_file() for ruta in ARCHIVOS_APP.values()):
+        return "local"
+    if all((PUBLICADOS / ruta.name).is_file() for ruta in ARCHIVOS_APP.values()):
+        return "publicado"
+    return None
+
+
+def rutas_datos(origen):
+    if origen == "publicado":
+        return {clave: PUBLICADOS / ruta.name for clave, ruta in ARCHIVOS_APP.items()}
+    return dict(ARCHIVOS_APP)
+
+
+def leer_publicacion():
+    try:
+        return json.loads(RUTA_PUBLICACION.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
+def texto_origen(origen, alertas, ruta_alertas):
+    """Frase de la barra lateral: hasta qué mes llegan los datos y de dónde salen."""
+    hasta = nombre_mes(alertas["fecha"].max())
+
+    if origen == "publicado":
+        publicacion = leer_publicacion() or {}
+        try:
+            generado = datetime.fromisoformat(publicacion["generado"])
+            cuando = f"publicada el {generado:%d/%m/%Y}"
+        except (KeyError, TypeError, ValueError):
+            cuando = "sin fecha de publicación"
+        return f"Datos hasta {hasta}. Copia {cuando} en `datos/publicados/`."
+
+    return (
+        f"Datos locales hasta {hasta}. Tabla de alertas generada el "
+        f"{fecha_modificacion(ruta_alertas):%d/%m/%Y a las %H:%M}."
+    )
 
 
 def alertas_desactualizadas():

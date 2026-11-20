@@ -76,3 +76,34 @@ tales hasta que se adopten.
 - Próxima comprobación: comparar ventanas históricas sobre un periodo
   común, evaluando cobertura y comportamiento de las alertas.
 - No modificar todavía el detector utilizado por la aplicación.
+
+### 20/11/2026 — Copia publicada de los datos para la aplicación
+
+- Decisión: publicar la aplicación en Streamlit Community Cloud con una
+  copia versionada de los datos que lee, en datos/publicados/, generada
+  con src/publicar_datos.py. La cadena de descarga, preparación y
+  detección no se ejecuta en el servidor.
+- Motivo: los originales y los procesados no se versionan y la aplicación
+  los necesita. Ejecutar la cadena en el servidor haría depender cada
+  arranque del portal, y la descarga se detiene a propósito cuando el
+  portal publica una versión nueva sin revisar. La copia publica
+  exactamente los datos revisados.
+- Trazabilidad: publicacion.json registra la fecha de generación, el
+  periodo de los datos, el commit, la atribución y las huellas SHA-256 de
+  los originales y de cada archivo. El script se detiene si alertas.csv es
+  anterior a los datos procesados o si los originales no son la versión
+  revisada. .gitattributes impide que Git cambie los finales de línea de
+  datos/publicados/, para que las huellas coincidan en cualquier sistema.
+- Se publican solo alertas.csv, paro_edad_mensual.csv y
+  contratos_mensuales.csv: 14,2 MB en CSV sin comprimir, para poder leerlos
+  y compararlos. Git guarda el historial comprimido, unos 2 MB por
+  actualización.
+- La aplicación usa las tablas locales si están todas y, si no, la copia
+  publicada; nunca mezcla las dos. La barra lateral indica hasta qué mes
+  llegan los datos y de dónde salen.
+- Licencia: los datos del portal tienen licencia CC BY 4.0, que permite
+  redistribuirlos con atribución e indicando los cambios. La atribución
+  figura en docs/fuentes_datos.md, en publicacion.json y en el pie de la
+  aplicación.
+- Para actualizar la aplicación publicada hay que repetir la cadena en
+  local, ejecutar src/publicar_datos.py y hacer commit de datos/publicados/.

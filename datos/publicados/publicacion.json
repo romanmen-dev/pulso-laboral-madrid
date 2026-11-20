@@ -1,0 +1,50 @@
+{
+  "generado": "2026-11-20T13:04:53+01:00",
+  "datos_desde": "2005-01",
+  "datos_hasta": "2026-10",
+  "commit": "c14f183e41546af86638305d209866b8b3ef07c2",
+  "cadena_con_cambios_sin_commit": false,
+  "atribucion": {
+    "fuente": "Comunidad de Madrid. Portal de Datos Abiertos (datos.comunidad.madrid). Fuente de los datos: D. G. del Servicio Público de Empleo.",
+    "licencia": "CC BY 4.0",
+    "url_licencia": "https://creativecommons.org/licenses/by/4.0/legalcode.es",
+    "modificaciones": "Datos transformados por Pulso Laboral Madrid: series mensuales, nombres de municipio armonizados y alertas experimentales calculadas."
+  },
+  "originales": [
+    {
+      "archivo": "paro_edad_municipio.csv",
+      "sha256": "0d14f265a8d5f9abb76b158f89c2dae983133a033d51bde25d6fce29087be8e2",
+      "pagina": "https://datos.comunidad.madrid/dataset/paro_registrado_edad_municipio",
+      "url": "https://datos.comunidad.madrid/catalogo/dataset/270edb5a-6788-41d5-ab8a-551c9daead0a/resource/c2be6e03-4915-41ab-9b5e-6ce66602c718/download/extraccionesmovimiento-laboral-registrado.-paro-registrado-por-edad-y-municipio.-comunidad-de-ma.csv"
+    },
+    {
+      "archivo": "contratos_municipio.csv",
+      "sha256": "a3ecd519dfe302e2c1da96b54c9ea8e1e4581b4ea369a1581357f2761be66866",
+      "pagina": "https://datos.comunidad.madrid/dataset/contratos_trabajo_municipio",
+      "url": "https://datos.comunidad.madrid/catalogo/dataset/19900d46-e62b-4ab1-a65e-ea0fb83bfdcb/resource/8b41acdd-cb88-404d-8767-e99b2cecc431/download/extraccionesmovimiento-laboral-registrado.-contratos-de-trabajo-por-municipio.-comunidad-de-madr.csv"
+    }
+  ],
+  "archivos": [
+    {
+      "archivo": "alertas.csv",
+      "origen": "resultados/alertas.csv",
+      "bytes": 5675205,
+      "filas": 46898,
+      "sha256": "52dcadbce9c16bddb9a63e09fc806a9e302097dc86a31e2d60619dabda9e99ed"
+    },
+    {
+      "archivo": "paro_edad_mensual.csv",
+      "origen": "datos/procesados/paro_edad_mensual.csv",
+      "bytes": 6981209,
+      "filas": 140694,
+      "sha256": "22d1a03146c428c56365696d2a42ac660cfb36cf12c3c85003ccd862309dcca3"
+    },
+    {
+      "archivo": "contratos_mensuales.csv",
+      "origen": "datos/procesados/contratos_mensuales.csv",
+      "bytes": 1497969,
+      "filas": 46898,
+      "sha256": "c378db1841e58cb6b755dac6cdc6c52affcad0a3cb3d24e1f84ab5a6c9a7b6a4"
+    }
+  ]
+}

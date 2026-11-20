@@ -123,22 +123,22 @@ FORMATOS = {
 # cuando se regenera.
 
 @st.cache_data(show_spinner="Leyendo resultados/alertas.csv…")
-def cargar_alertas(marca_tiempo):
-    return datos.leer_alertas()
+def cargar_alertas(ruta, marca_tiempo):
+    return datos.leer_alertas(ruta)
 
 
 @st.cache_data(show_spinner="Leyendo el paro por edad…")
-def cargar_paro_edad(marca_tiempo):
-    return datos.leer_paro_edad()
+def cargar_paro_edad(ruta, marca_tiempo):
+    return datos.leer_paro_edad(ruta)
 
 
 @st.cache_data(show_spinner="Leyendo los contratos…")
-def cargar_contratos(marca_tiempo):
-    return datos.leer_contratos()
+def cargar_contratos(ruta, marca_tiempo):
+    return datos.leer_contratos(ruta)
 
 
 def cargar_si_existe(ruta, cargar):
-    return cargar(datos.marca_tiempo(ruta)) if ruta.is_file() else None
+    return cargar(str(ruta), datos.marca_tiempo(ruta)) if ruta.is_file() else None
 
 
 def mostrar_como_generar(mensaje):
@@ -452,19 +452,24 @@ st.logo(
 
 st.title("Pulso Laboral Madrid")
 
-if not datos.RUTA_ALERTAS.is_file():
+origen = datos.origen_datos()
+if origen is None:
     mostrar_como_generar(
-        "No se encuentra `resultados/alertas.csv`, la tabla que genera el detector."
+        "No se encuentran los datos de la aplicación: ni las tablas locales "
+        "(`resultados/alertas.csv` y `datos/procesados/`) ni la copia de "
+        "`datos/publicados/`."
     )
 
+rutas = datos.rutas_datos(origen)
+
 try:
-    alertas = cargar_alertas(datos.marca_tiempo(datos.RUTA_ALERTAS))
+    alertas = cargar_alertas(str(rutas["alertas"]), datos.marca_tiempo(rutas["alertas"]))
 except ValueError as error:
-    mostrar_como_generar(f"No se puede leer `resultados/alertas.csv`: {error}")
+    mostrar_como_generar(f"No se puede leer `{rutas['alertas'].name}`: {error}")
 
 st.warning(AVISO, icon=":material/warning:")
 
-if datos.alertas_desactualizadas():
+if origen == "local" and datos.alertas_desactualizadas():
     st.warning(
         "Hay datos procesados más recientes que `resultados/alertas.csv`. "
         f"Vuelve a ejecutar `{datos.COMANDO_DETECTAR}` y recarga la página.",
@@ -492,14 +497,11 @@ with st.sidebar:
         key="municipio",
         help="También se abre al seleccionar una fila de la tabla de alertas.",
     )
-    st.caption(
-        "Tabla de alertas generada el "
-        f"{datos.fecha_modificacion(datos.RUTA_ALERTAS):%d/%m/%Y a las %H:%M}."
-    )
+    st.caption(datos.texto_origen(origen, alertas, rutas["alertas"]))
 
 paleta = graficos.paleta(modo_oscuro())
-paro_edad = cargar_si_existe(datos.RUTA_PARO_EDAD, cargar_paro_edad)
-contratos = cargar_si_existe(datos.RUTA_CONTRATOS, cargar_contratos)
+paro_edad = cargar_si_existe(rutas["paro_edad"], cargar_paro_edad)
+contratos = cargar_si_existe(rutas["contratos"], cargar_contratos)
 
 pestana_general, pestana_ficha, pestana_cambios = st.tabs(
     PESTANAS, key="pestana", on_change="rerun"
@@ -515,7 +517,12 @@ with pestana_cambios:
     cambios_frente_al_limite(alertas, fecha, municipio, paleta)
 
 st.divider()
-st.caption(f"Datos: [Portal de Datos Abiertos de la Comunidad de Madrid]({identidad.URL_PORTAL})")
+st.caption(
+    f"Datos: [Portal de Datos Abiertos de la Comunidad de Madrid]({identidad.URL_PORTAL}), "
+    f"con licencia [CC BY 4.0]({identidad.URL_LICENCIA}). Fuente: D. G. del Servicio "
+    "Público de Empleo. Este proyecto los transforma: series mensuales y alertas "
+    "experimentales calculadas."
+)
 st.caption(
     "Proyecto independiente para DATAMAD 2026; no es una herramienta oficial "
     "de la Comunidad de Madrid. Método y columnas: `docs/contrato_alertas.md`."
