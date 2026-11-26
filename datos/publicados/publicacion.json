@@ -1,9 +1,9 @@
 {
-  "generado": "2026-11-26T15:24:35+01:00",
+  "generado": "2026-11-26T15:27:11+01:00",
   "datos_desde": "2005-01",
   "datos_hasta": "2026-10",
-  "commit": "deabb9db2816ea27d39379915cbb1190ea4daee3",
-  "cadena_con_cambios_sin_commit": true,
+  "commit": "29a61a326f70637c382dabcffda1b06a5a0e5cb9",
+  "cadena_con_cambios_sin_commit": false,
   "atribucion": {
     "fuente": "Comunidad de Madrid. Portal de Datos Abiertos (datos.comunidad.madrid). Fuente de los datos: D. G. del Servicio Público de Empleo. Población: Censo de Población Anual, INE. Límites municipales: Información geográfica de la Comunidad de Madrid (Geoportal IDEM).",
     "licencia": "CC BY 4.0",
