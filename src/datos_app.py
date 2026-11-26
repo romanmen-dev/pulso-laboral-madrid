@@ -78,14 +78,17 @@ COMANDO_COMPARAR = r".\.venv\Scripts\python.exe .\src\comparar_metodos.py"
 
 # Etiqueta local/regional de las alertas (método B de docs/validacion.md).
 # Es información de contraste: no cambia el estado oficial de la alerta.
+# Son etiquetas estadísticas: no dicen la causa de la subida.
 TIPOS_ALERTA = {"local": "Local", "regional": "Regional"}
 AYUDA_TIPO = (
-    "Se decide con un segundo método, solo como contraste (método B de "
-    "docs/validacion.md). Con los 60 meses anteriores estima cuánto suele "
+    "Etiqueta estadística de contraste, calculada con un segundo método (método B "
+    "de docs/validacion.md). Con los 60 meses anteriores estima cuánto suele "
     "cambiar el paro del municipio cuando cambia el del resto de la Comunidad. "
-    "Si este mes la subida supera lo esperable en más de 3 veces su dispersión "
-    "habitual, la alerta es local; si no, es regional: el paro sube en línea "
-    "con el conjunto de la Comunidad. El estado oficial de la alerta no cambia."
+    "Local: la subida de este mes supera lo esperable en más de 3 veces su "
+    "dispersión habitual, así que destaca también frente al resto de la "
+    "Comunidad. Regional: la subida es compatible con la evolución del resto de "
+    "la Comunidad. No indica la causa de la subida ni cambia el estado oficial "
+    "de la alerta."
 )
 
 # Métodos alternativos de la ficha (columnas de otros_metodos.csv), en el
@@ -424,11 +427,14 @@ def frase_tipos_mes(tabla):
     if n == 1:
         tipo = tabla["tipo"].iloc[0]
         if tipo == TIPOS_ALERTA["local"]:
-            frase = "La única alerta de este mes es local: el paro sube más que en el resto de la Comunidad."
+            frase = (
+                "La única alerta de este mes es local: destaca también frente al "
+                "resto de la Comunidad."
+            )
         elif tipo == TIPOS_ALERTA["regional"]:
             frase = (
-                "La única alerta de este mes es regional: el paro sube en línea con "
-                "el conjunto de la Comunidad."
+                "La única alerta de este mes es regional: es compatible con la "
+                "evolución del resto de la Comunidad."
             )
         else:
             frase = "La única alerta de este mes no se puede clasificar como local o regional."
@@ -436,20 +442,20 @@ def frase_tipos_mes(tabla):
 
     if locales == 0 and not sin_clasificar:
         frase = (
-            f"De las {numero(n)} alertas de este mes, ninguna es local: todas suben "
-            "en línea con el conjunto de la Comunidad."
+            f"De las {numero(n)} alertas de este mes, ninguna es local: todas son "
+            "compatibles con la evolución del resto de la Comunidad."
         )
     elif locales == 0:
         frase = f"De las {numero(n)} alertas de este mes, ninguna es local."
     elif locales == 1:
         frase = (
-            f"De las {numero(n)} alertas de este mes, 1 es local: el paro sube más "
-            "que en el resto de la Comunidad."
+            f"De las {numero(n)} alertas de este mes, 1 es local: destaca también "
+            "frente al resto de la Comunidad."
         )
     else:
         frase = (
             f"De las {numero(n)} alertas de este mes, {numero(locales)} son locales: "
-            "el paro sube más que en el resto de la Comunidad."
+            "destacan también frente al resto de la Comunidad."
         )
     if sin_clasificar:
         frase += f" {numero(sin_clasificar)} no se pueden clasificar."
@@ -459,9 +465,9 @@ def frase_tipos_mes(tabla):
 def frase_tipo(tipo):
     """Frase de la ficha para una alerta local o regional."""
     if tipo == "local":
-        return "**Alerta local:** sube más que en el resto de la Comunidad."
+        return "**Alerta local:** la subida destaca también frente al resto de la Comunidad."
     if tipo == "regional":
-        return "**Alerta regional:** el paro sube en línea con el conjunto de la Comunidad."
+        return "**Alerta regional:** la subida es compatible con la evolución del resto de la Comunidad."
     return None
 
 

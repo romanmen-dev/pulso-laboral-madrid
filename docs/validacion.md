@@ -28,9 +28,9 @@ resultados están en la sección
   anteriores. Los quintiles de tamaño (paro medio de 2019) y los umbrales
   calibrados en 2017-2019 solo describen resultados: no intervienen en ninguna
   detección.
-- Inyección sintética: se suma la subida al cambio del mes evaluado y se aplica
-  la regla del detector (sube y puntuación > umbral) con su referencia y su
-  escala, que solo dependen de años anteriores. El script lo comprueba
+- Subidas sintéticas: se suma la subida al cambio real del mes evaluado, que
+  puede ser negativo, y se aplica la regla del detector (sube y puntuación >
+  umbral) con su referencia y su escala, que solo dependen de años anteriores. El script lo comprueba
   ejecutando el detector completo sobre la serie con la subida de 2019 (5 %), y
   `tests/test_validacion.py` lo comprueba con varios años y tamaños: una subida
   nula da las alertas oficiales y una enorme se detecta en todos los meses
@@ -54,19 +54,22 @@ Febrero de 2010 (primer mes evaluable) a octubre de 2026: 201 meses
 
 ![Municipios con alerta por mes, con 2017-2019 y marzo-junio de 2020 marcados](../resultados/validacion/alertas_por_mes.png)
 
-## 2. Falsas alarmas en calma (2017-2019)
+## 2. Alertas en un periodo de referencia estable (2017-2019)
 
-Se toma 2017-2019 como periodo sin crisis, pero no hay una lista de anomalías
-reales, así que «falsa alarma» es una suposición: 2019 ya tiene un 7,7 % de
-alertas ([`validacion_anual.csv`](../resultados/validacion/validacion_anual.csv)).
+Se toma 2017-2019 como periodo de referencia estable, sin crisis. No hay
+anomalías municipales verificadas, así que no se puede saber cuántas de sus
+alertas son falsas. Por eso este documento no habla de «falsas alarmas», sino de
+**tasa de alertas en calma**: cuántas alertas da el detector en años sin crisis
+conocida. Tampoco está garantizado que esos años no tengan subidas reales: 2019
+ya tiene un 7,7 % de alertas
+([`validacion_anual.csv`](../resultados/validacion/validacion_anual.csv)).
 
 | Medida | Valor |
 |---|---:|
 | Municipio-mes evaluables | 6.006 |
 | Alertas | 331 |
 | **% de alertas** | **5,51 %** |
-| Teórico con normalidad, P(Z > 3) | 0,135 % |
-| Observado / teórico | 40,8 veces |
+| Referencia de una normal con media y escala conocidas, P(Z > 3) | 0,135 % |
 | Simulado con normalidad, mediana y MAD de 5 cambios | 7,58 % |
 | Observado sin exigir que el paro suba (puntuación > 3) | 7,43 % |
 | Puntuación < −3 (cola inferior) | 5,13 % |
@@ -75,13 +78,15 @@ alertas ([`validacion_anual.csv`](../resultados/validacion/validacion_anual.csv)
 Fuente: [`calma_2017_2019.csv`](../resultados/validacion/calma_2017_2019.csv).
 La simulación usa 1.000.000 de repeticiones con semilla 2026.
 
-**Por qué no sale un 0,135 %.** Las colas pesadas no están en los datos, sino
-en la puntuación, porque la escala se estima con solo 5 cambios:
+**El 0,135 % no es la tasa que debería dar el detector.** Es la de una normal
+con media y escala conocidas. El detector estima las dos con solo 5 cambios, y
+eso hace que la puntuación supere 3 mucho más a menudo, aunque los datos sean
+normales. Las colas pesadas no están en los datos, sino en la puntuación:
 
 - Con 5 valores, uno de los desvíos respecto a la mediana es siempre 0, y la
   MAD es el segundo menor de los otros cuatro. Suele quedar pequeña y varía
   mucho de un caso a otro, así que la puntuación se dispara. Aunque los cambios
-  fueran normales, un 7,58 % de los meses superaría 3, no un 0,135 %.
+  fueran normales, un 7,58 % de los meses superaría 3.
 - En calma, el 7,43 % de los meses evaluables supera 3 si no se exige que el
   paro suba: casi lo mismo que la simulación. Con umbrales más altos, lo
   observado queda por debajo de la simulación. Con 6: 2,01 % frente a 2,47 %.
@@ -126,13 +131,18 @@ de los 179 municipios ese mes.
 (suma de los 179 municipios) subió en 41.263 personas, frente a una media de
 −9.283 en abril de 2017-2019. En junio, el detector vuelve a niveles de calma.
 
-## 4. Inyección sintética (potencia)
+## 4. Sensibilidad ante subidas sintéticas
 
-Meses evaluables de 2015 a 2019: 10.068 municipio-mes. A cada uno se le suma
-una subida del 1 %, 2 %, 5 % o 10 % del paro del mes anterior, redondeada a
-personas (las mitades, hacia arriba). La tasa de detección incluye los meses
-que ya tenían alerta sin la subida: es la fila del 0 %
-([`potencia.csv`](../resultados/validacion/potencia.csv)).
+Meses evaluables de 2015 a 2019: 10.068 municipio-mes. Al cambio real de cada
+uno se le suma una subida del 1 %, 2 %, 5 % o 10 % del paro del mes anterior,
+redondeada a personas (las mitades, hacia arriba). El cambio real puede ser
+negativo: si el paro bajaba 20 personas y se suman 15, el resultado sigue
+siendo una bajada y no puede dar alerta. Son saltos puntuales de un solo mes, no
+crisis graduales ni prolongadas. La tasa de detección incluye los meses que ya
+tenían alerta sin la subida: es la fila del 0 %
+([`potencia.csv`](../resultados/validacion/potencia.csv)). En el resto del
+documento, «sensibilidad» es esta tasa de detección (en los CSV, columnas
+`potencia_*`).
 
 Quintiles de los 179 municipios por su paro medio de 2019 (Q1, los más
 pequeños: de 1,8 a 39,3 personas; Q5: de 811,8 a 163.525,8). Detalle por
@@ -147,24 +157,26 @@ municipio en
 | 5 % | **30,3 %** | 4,6 % | 16,8 % | 23,6 % | 33,8 % | 65,4 % |
 | 10 % | **55,4 %** | 8,4 % | 33,2 % | 53,6 % | 73,9 % | 94,8 % |
 
-- Solo entre los meses sin alerta previa, se detecta el 3,0 %, 7,6 %, 27,0 % y
-  53,2 % de las subidas del 1 %, 2 %, 5 % y 10 %.
+- Solo entre los meses sin alerta previa (9.602), se detecta el 3,0 %, 7,6 %,
+  27,0 % y 53,2 % de las subidas del 1 %, 2 %, 5 % y 10 %. Con la del 10 %, el
+  94,6 % en Q5 y el 6,0 % en Q1 (columna
+  `tasa_deteccion_sin_alerta_previa_pct`).
 - En Q1 la subida mediana es de 0 personas con el 1 % y el 2 %, y de 1 persona
   con el 5 % y el 10 %. Con el 1 %, la subida es nula en 1.517 de sus 1.586
   meses.
 
-![Curvas de potencia por quintil de tamaño](../resultados/validacion/curvas_potencia.png)
+![Sensibilidad ante subidas sintéticas por quintil de tamaño](../resultados/validacion/curvas_potencia.png)
 
-## 5. Sensibilidad a la ventana y al umbral
+## 5. Efecto de la ventana y del umbral
 
 Fuente: [`sensibilidad.csv`](../resultados/validacion/sensibilidad.csv).
 «Cobertura» es el % de municipio-mes evaluables en 2017-2019. «2020» es el %
-de alertas entre evaluables de marzo a junio de 2020. «Potencia» es la
-detección de la subida del 5 % en 2015-2019. Jaccard compara los conjuntos de
-alertas con los del oficial desde febrero de 2012, primer mes en que todas las
-variantes tienen historial (1.594 alertas oficiales).
+de alertas entre evaluables de marzo a junio de 2020. «Subida del 5 %» es la
+sensibilidad ante la subida sintética del 5 % en 2015-2019. Jaccard compara los
+conjuntos de alertas con los del oficial desde febrero de 2012, primer mes en
+que todas las variantes tienen historial (1.594 alertas oficiales).
 
-| Ventana | Umbral | Cobertura | % alertas en calma | 2020 | Potencia (5 %) | Jaccard |
+| Ventana | Umbral | Cobertura | % alertas en calma | 2020 | Subida del 5 % (2015-2019) | Jaccard |
 |---:|---:|---:|---:|---:|---:|---:|
 | 3 | 2,5 | 84,3 % | 11,4 % | 44,0 % | 46,7 % | 0,33 |
 | 3 | 3 | 84,3 % | 9,5 % | 38,2 % | 41,8 % | 0,35 |
@@ -208,8 +220,8 @@ Febrero de 2010 a octubre de 2026, por quintil de paro medio de 2019
 - La puntuación mediana de las alertas no es mayor en los municipios pequeños,
   sino algo menor. Lo que cambia es la subida que hay detrás: una mediana de
   5 personas en Q1, frente a 80 en Q5.
-- Con la potencia, el detector apenas puede ver subidas relativas en Q1 (8,4 %
-  con una subida del 10 %, sección 4).
+- Con subidas sintéticas, el detector apenas puede ver subidas relativas en Q1
+  (8,4 % con una subida del 10 % en 2015-2019, sección 4).
 
 ## 7. Persistencia
 
@@ -224,26 +236,29 @@ base es el % de meses con alerta tras un mes evaluable sin alerta.
 | 2017-2019 | 331 | 14 | 4,2 % | 5,8 % |
 
 - 93 de las 159 repeticiones (159 − 66) son de alertas de marzo a junio de
-  2020. Fuera de ese episodio, tras una alerta hay menos alertas que tras un
-  mes sin alerta.
-- El 92,2 % de las rachas de alertas dura un solo mes (1.568 de 1.700). Hay
+  2020. Fuera de ese episodio, solo el 4,1 % de las alertas se repite el mes
+  siguiente: tras una alerta hay menos alertas que tras un mes sin alerta
+  (5,1 %).
+- En toda la serie, de febrero de 2010 a octubre de 2026 y con 2020 incluido,
+  el 92,2 % de las rachas de alertas dura un solo mes (1.568 de 1.700). Hay
   108 de dos meses, 22 de tres, una de cuatro y una de cinco
-  ([`rachas_alertas.csv`](../resultados/validacion/rachas_alertas.csv)).
+  ([`rachas_alertas.csv`](../resultados/validacion/rachas_alertas.csv)). Este
+  porcentaje no se ha calculado sin 2020.
 
 ## Conclusión
 
-- El detector reproduce `alertas.csv` sin información futura. En calma marca el 5,51 % de los meses evaluables, 40,8 veces el 0,135 % teórico: con 5 cambios, datos normales ya darían un 7,58 %.
+- El detector reproduce `alertas.csv` sin información futura. En calma (2017-2019) marca el 5,51 % de los meses evaluables. El 0,135 % de una normal con parámetros conocidos no es la referencia adecuada: con la escala estimada con 5 cambios, datos normales ya darían un 7,58 % de puntuaciones mayores que 3.
 - Responde con claridad a 2020: en abril, 114 de 169 municipios evaluables (67,5 %, el 98,7 % del paro), frente a un 5,5 % en abril de 2017-2019.
-- Detecta una subida puntual del 5 % en el 30,3 % de los meses y una del 10 % en el 55,4 %. En el quintil mayor, en el 65,4 % y el 94,8 %; en el menor, en el 4,6 % y el 8,4 %.
-- Fuera de 2020 las alertas no se repiten más de lo esperable (4,1 % frente al 5,1 % de base): son avisos para revisar, no una confirmación.
+- Con subidas sintéticas puntuales en 2015-2019, detecta la del 5 % en el 30,3 % de los meses y la del 10 % en el 55,4 % (27,0 % y 53,2 % contando solo los meses sin alerta previa). En el quintil mayor, en el 65,4 % y el 94,8 %; en el menor, en el 4,6 % y el 8,4 %.
+- Fuera de marzo-junio de 2020 las alertas no se repiten más de lo esperable (4,1 % frente al 5,1 % de base): son avisos para revisar, no una confirmación.
 - Con ventana de 7 años y umbral 2,5, la tasa en calma es la misma que con 5 años y umbral 3,5 (4,0 %), con más respuesta en 2020: merece estudiarse, sin cambiar todavía el detector.
 
 ## Limitaciones
 
 - **Sin verdad de referencia.** No hay una lista de anomalías municipales
-  confirmadas, así que no se puede medir la precisión ni la tasa real de falsas
-  alarmas. 2017-2019 se trata como calma y 2020 como episodio conocido, pero es
-  un episodio regional, no una etiqueta por municipio.
+  confirmadas, así que no se puede medir la precisión ni saber cuántas alertas
+  son falsas. 2017-2019 se trata como calma y 2020 como episodio conocido, pero
+  es un episodio regional, no una etiqueta por municipio.
 - **La serie empieza en 2005.** El primer mes evaluable es febrero de 2010, o
   febrero de 2012 con ventana de 7 años. La crisis de 2008-2009 no se puede
   evaluar, y 2020 es el único episodio de referencia.
@@ -251,14 +266,17 @@ base es el % de meses con alerta tras un mes evaluable sin alerta.
   población de referencia. Las subidas sintéticas son relativas al paro del
   mes anterior, y en los municipios pequeños los recuentos enteros hacen que la
   MAD sea 0 o 1 con frecuencia y que una subida pequeña se redondee a 0.
-- La inyección prueba un salto aislado en un solo mes. No prueba subidas
-  graduales a lo largo de varios meses, que además contaminarían las
-  referencias de años posteriores.
+- Las subidas sintéticas son saltos aislados de un solo mes, sumados a cambios
+  reales que pueden ser negativos. No prueban crisis graduales ni prolongadas,
+  que además contaminarían las referencias de años posteriores.
 - Los quintiles usan el paro medio de 2019 para todo el periodo. Los umbrales
   de la sección 2 se calibran en la misma muestra que evalúan. Ninguno de los
   dos interviene en las detecciones.
 - La simulación supone cambios normales e independientes, sin tendencia.
-- Se usa la versión actual de los datos, no la publicada en cada fecha.
+- **Versión actual de los datos.** Se trabaja con la versión actual de los
+  datos, no con la que existía en cada fecha. Si la fuente ha revisado meses
+  antiguos, la evaluación histórica no reproduce exactamente lo que se habría
+  visto entonces.
 - El paro de la Comunidad es la suma de los 179 municipios (suma de los tres
   grupos de edad), pendiente de contraste con los totales oficiales.
 
@@ -268,14 +286,14 @@ La validación muestra que el problema principal del detector oficial es
 estimar la referencia y la escala con solo 5 cambios. `src/comparar_metodos.py`
 compara tres alternativas, y dos mejoras de la principal (C centrado y umbral
 elegido fuera de muestra), con el mismo banco de pruebas: periodo de calma
-2017-2019, episodio de marzo a junio de 2020 e inyección sintética en
+2017-2019, episodio de marzo a junio de 2020 y subidas sintéticas en
 2015-2019, con las funciones de `src/validar_detector.py`. Ninguna usa
 información futura, y `tests/test_comparar_metodos.py` lo comprueba alterando
 los datos posteriores a un mes de corte. Todas las rutas son de
 `resultados/validacion/`.
 
-**Criterio:** menos falsas alarmas en calma, y la misma o mejor respuesta en
-2020 y potencia.
+**Criterio:** menos alertas en calma (2017-2019), y la misma o mejor respuesta
+en 2020 y sensibilidad ante subidas sintéticas.
 
 ### Métodos
 
@@ -319,8 +337,8 @@ los datos posteriores a un mes de corte. Todas las rutas son de
 - **C_fm y Cc_fm: umbral elegido fuera de muestra.** El umbral de C y de Cc se
   elige solo con 2012-2016. Es el que da en esos años la misma tasa de
   alertas que el oficial con umbral 3, un 4,14 %. Después se evalúa con ese
-  umbral fijo en 2017-2019 (calma y potencia) y en marzo-junio de 2020, así
-  que el umbral no se elige con los datos con que se evalúa.
+  umbral fijo en 2017-2019 (calma y sensibilidad) y en marzo-junio de 2020,
+  así que el umbral no se elige con los datos con que se evalúa.
 
 **Qué se simplifica de Farrington.** Farrington et al. (1996), *A statistical
 algorithm for the early detection of outbreaks of infectious disease*
@@ -340,7 +358,8 @@ cambio:
 - La tendencia se mantiene siempre, sin contraste ni control de rango.
 - Sin repesado de valores atípicos: los niveles altos de 2020 entran sin
   rebaja en las referencias de 2021 a 2025.
-- El umbral es el de potencia 2/3 del original, no el de la binomial negativa.
+- El umbral usa la transformación de potencia 2/3 del original, no la binomial
+  negativa.
 - En lugar de la regla del mínimo de casos, se exige que el paro suba.
 - Si el paro de los 15 meses de referencia es siempre 0, el mes no es
   evaluable.
@@ -357,10 +376,10 @@ columnas `segundos_*`). El script entero tarda unos 40 s.
 ### Resultados con el umbral de cada método
 
 Fuente: [`resumen_metodos.csv`](../resultados/validacion/resumen_metodos.csv).
-La potencia es el % de meses evaluables de 2015-2019 en los que se detecta
-una subida puntual del % indicado del paro del mes anterior.
+La sensibilidad es el % de meses evaluables de 2015-2019 en los que se detecta
+una subida sintética puntual del % indicado del paro del mes anterior.
 
-| Método | % alertas en calma | 2020: marzo-junio | Abril 2020 | % paro en alerta, abril 2020 | Potencia 1 % | 2 % | 5 % | 10 % | No evaluables |
+| Método | % alertas en calma | 2020: marzo-junio | Abril 2020 | % paro en alerta, abril 2020 | Sensibilidad 2015-2019: 1 % | 2 % | 5 % | 10 % | No evaluables |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | **Oficial** | **5,51 %** | **33,5 %** | **114 de 169 (67,5 %)** | **98,7 %** | **7,5 %** | **11,9 %** | **30,3 %** | **55,4 %** | **6,2 %** |
 | C5 | 0,03 % | 1,9 % | 11 de 169 (6,5 %) | 16,0 % | 0,06 % | 0,16 % | 0,8 % | 2,5 % | 6,2 % |
@@ -371,7 +390,8 @@ una subida puntual del % indicado del paro del mes anterior.
 
 «No evaluables» es el % de municipio-mes de febrero de 2010 a octubre de 2026
 que no se pueden evaluar. Por quintil de tamaño (Q1, los municipios más
-pequeños), potencia con la subida del 10 % y no evaluables en Q1
+pequeños), sensibilidad con la subida del 10 % en 2015-2019 y no evaluables en
+Q1
 (detalle en [`potencia_metodos.csv`](../resultados/validacion/potencia_metodos.csv)):
 
 | Método | Q1 | Q2 | Q3 | Q4 | Q5 | No evaluables en Q1 |
@@ -386,9 +406,10 @@ pequeños), potencia con la subida del 10 % y no evaluables en Q1
 En los quintiles Q2 a Q5, C, A y B evalúan todos los meses. Cc deja sin
 evaluar un 0,5 % en cada uno: el mes de febrero de 2010.
 
-- **C, Cc y C5 consiguen lo que promete la calibración:** en calma marcan el
-  0,11 %, el 0,16 % y el 0,03 %, cerca o por debajo del 0,135 % nominal. Pero
-  pierden casi toda la potencia y buena parte de la respuesta a 2020. Calibrar el umbral
+- **C, Cc y C5 consiguen lo que busca la calibración:** en calma marcan el
+  0,11 %, el 0,16 % y el 0,03 %, cerca o por debajo del 0,135 % que se fijó
+  como objetivo. Pero pierden casi toda la sensibilidad y buena parte de la
+  respuesta a 2020. Calibrar el umbral
   solo, con 5 cambios (C5), es lo peor de todo: el umbral necesario, 27,99, no
   deja pasar casi nada.
 - **A** responde a 2020 más que el oficial de marzo a junio (39,2 % frente a
@@ -396,22 +417,23 @@ evaluar un 0,5 % en cada uno: el mes de febrero de 2010.
   influye que trabaja con el nivel, y el paro siguió alto varios meses. Pero
   apenas detecta subidas puntuales (4,8 % con el 5 %).
 - **B** apenas responde a 2020, y es lo esperado: descuenta lo que sube en
-  toda la Comunidad. En cambio, con muy pocas falsas alarmas (0,38 %) detecta
-  el 46,0 % de las subidas del 10 %, y en los quintiles Q4 y Q5 más que el
-  oficial (76,6 % y 97,8 %).
+  toda la Comunidad. En cambio, con muy pocas alertas en calma (0,38 %)
+  detecta el 46,0 % de las subidas sintéticas del 10 %, y en los quintiles Q4
+  y Q5 más que el oficial (76,6 % y 97,8 %).
 - **Ningún municipio pequeño queda bien cubierto con estos umbrales:** en Q1
   ningún método pasa del 8,4 % con una subida del 10 %. C, Cc, A y B sí reducen
   los meses no evaluables de Q1, del 26,1 % al 11,6 %, 20,0 %, 0,01 % y 8,3 %.
 
-### Con las mismas falsas alarmas
+### Con la misma tasa de alertas en calma
 
 Cada método se puede mover a lo largo de su curva cambiando el umbral. Para
 compararlos con justicia, se fija la tasa en calma y se mira cuál responde más
 ([`comparacion_misma_tasa.csv`](../resultados/validacion/comparacion_misma_tasa.csv):
 el umbral con la mayor tasa en calma que no pasa de la indicada; curvas
 completas en [`curvas_metodos.csv`](../resultados/validacion/curvas_metodos.csv)).
+La sensibilidad es la de 2015-2019.
 
-| Tasa en calma | Método (umbral) | % en calma | 2020: marzo-junio | Abril 2020 | Potencia 5 % | Potencia 10 % |
+| Tasa en calma | Método (umbral) | % en calma | 2020: marzo-junio | Abril 2020 | Sensibilidad 5 % (2015-2019) | Sensibilidad 10 % (2015-2019) |
 |---|---|---:|---:|---:|---:|---:|
 | ≤ 0,135 % | Oficial (15) | 0,13 % | 4,2 % | 13,6 % | 2,3 % | 7,7 % |
 | | C (4,75) | 0,13 % | 13,2 % | 39,1 % | 2,4 % | 16,5 % |
@@ -429,25 +451,25 @@ completas en [`curvas_metodos.csv`](../resultados/validacion/curvas_metodos.csv)
 | | A (1,85) | 5,45 % | 49,6 % | 67,6 % | 12,0 % | 20,3 % |
 | | B (1,6) | 5,24 % | 5,9 % | 10,9 % | 46,2 % | 72,2 % |
 
-- **Con las mismas falsas alarmas, C y Cc superan al oficial en las cuatro
+- **Con la misma tasa en calma, C y Cc superan al oficial en las cuatro
   medidas**, en todos los niveles de la tabla (también al 0,5 % y al 2 % del
-  CSV). Lo que les quita potencia en la tabla anterior es el umbral calibrado,
-  no tener más cambios. Entre los dos, C responde más a 2020 y a las subidas
+  CSV). Lo que les quita sensibilidad en la tabla anterior es el umbral
+  calibrado, no tener más cambios. Entre los dos, C responde más a 2020 y a las subidas
   del 10 % en todos los niveles. Cc detecta algo más las del 5 % entre el
   0,5 % y el 2 % de alertas en calma.
 - **Con el umbral elegido en estos mismos años, C y Cc cumplen el criterio**
   ([`criterio_comparacion.csv`](../resultados/validacion/criterio_comparacion.csv),
-  potencia de 2015-2019 con subidas del 5 % y del 10 %). C lo cumple con
+  sensibilidad de 2015-2019 con subidas del 5 % y del 10 %). C lo cumple con
   umbral 1,9: marca un 4,02 % en calma, frente al 5,51 %, y mejora la respuesta
   en 2020 (38,1 % frente a 33,5 % de marzo a junio; 77,0 % frente a 67,5 % en
-  abril) y la potencia (30,8 % frente a 30,3 % con el 5 %; 63,5 % frente a
-  55,4 % con el 10 %). Cc lo cumple con umbral 2,9 y un 4,11 % en calma. A y B
+  abril) y la sensibilidad en 2015-2019 (30,8 % frente a 30,3 % con el 5 %;
+  63,5 % frente a 55,4 % con el 10 %). Cc lo cumple con umbral 2,9 y un 4,11 % en calma. A y B
   no lo cumplen con ningún umbral de la rejilla (de 0,5 a 60). Esta elección
   del umbral es optimista: la siguiente sección la repite fuera de muestra.
-- **B es el más potente para subidas locales en todos los niveles de la
-  tabla**, pero no ve los choques regionales: en 2020 no pasa del 5,9 % ni con
-  un 5,24 % de falsas alarmas.
-- **A queda por debajo del oficial en potencia en todos los niveles de la
+- **B es el más sensible a subidas sintéticas locales en todos los niveles de
+  la tabla**, pero no ve los choques regionales: en 2020 no pasa del 5,9 % ni
+  con un 5,24 % de alertas en calma.
+- **A queda por debajo del oficial en sensibilidad en todos los niveles de la
   tabla.**
 
 ### Con el umbral elegido fuera de muestra
@@ -456,18 +478,21 @@ El umbral se elige solo con 2012-2016, para dar la tasa del oficial con
 umbral 3 en esos años: 420 alertas de 10.135 meses evaluables, el 4,14 %
 ([`umbrales_fuera_de_muestra.csv`](../resultados/validacion/umbrales_fuera_de_muestra.csv)).
 Para C sale 1,87 (4,14 % en 2012-2016) y para Cc, 2,59 (4,12 %). Con esos
-umbrales fijos se evalúa en 2017-2019 y en 2020. La potencia se mide en
-2017-2019, sin los años de selección. Fuente de las cifras:
+umbrales fijos se evalúa en 2017-2019 y en 2020. La sensibilidad se mide en
+2017-2019, sin los años de selección, así que las cifras del oficial no son las
+de 2015-2019 de la sección 4 (32,4 % y 55,3 % con el 5 % y el 10 %, frente a
+30,3 % y 55,4 %). Fuente de las cifras:
 [`resumen_metodos.csv`](../resultados/validacion/resumen_metodos.csv)
-(filas `oficial`, `C_fm` y `Cc_fm`; columnas `*_2017_2019` para la potencia).
+(filas `oficial`, `C_fm` y `Cc_fm`; columnas `*_2017_2019` para la
+sensibilidad).
 
-| Método (umbral) | % en calma 2017-2019 | 2020: marzo-junio | Abril 2020 | Potencia 1 % | 2 % | 5 % | 10 % | No evaluables | Madrid oct. 2026 |
+| Método (umbral) | % en calma 2017-2019 | 2020: marzo-junio | Abril 2020 | Sensibilidad 2017-2019: 1 % | 2 % | 5 % | 10 % | No evaluables | Madrid oct. 2026 |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---|
 | **Oficial (3)** | **5,51 %** (331 de 6.006) | **33,5 %** | **67,5 %** | **8,9 %** | **13,9 %** | **32,4 %** | **55,3 %** | **6,2 %** | Alerta (límite +826) |
 | C fuera de muestra (1,87) | 4,15 % (260 de 6.268) | 39,0 % | 77,6 % | 6,7 % | 11,1 % | 32,8 % | 63,6 % | 2,3 % | No (+2.621) |
 | Cc fuera de muestra (2,59) | 5,62 % (346 de 6.158) | 40,4 % | 73,3 % | 9,5 % | 15,8 % | 37,9 % | 63,2 % | 4,4 % | No (+2.388) |
 
-Potencia en 2017-2019 por quintil, con subidas del 5 % y del 10 %
+Sensibilidad en 2017-2019 por quintil, con subidas del 5 % y del 10 %
 ([`potencia_metodos.csv`](../resultados/validacion/potencia_metodos.csv),
 `periodo_inyeccion` 2017-2019):
 
@@ -481,33 +506,36 @@ Potencia en 2017-2019 por quintil, con subidas del 5 % y del 10 %
 | Cc fuera de muestra | 10 % | 14,6 % | 38,9 % | 63,4 % | 89,4 % | 99,1 % |
 
 **¿C centrado, con el umbral elegido fuera de muestra, mejora al oficial en
-calma, en 2020 y en potencia a la vez? No.**
+calma, en 2020 y en sensibilidad a la vez? No.**
 
 - **En calma no mejora:** 5,62 % frente a 5,51 %, prácticamente lo mismo y
   algo peor. El umbral elegido en 2012-2016 no se traslada a 2017-2019 porque
   Cc tiene la misma referencia que el oficial, y la tasa de los dos sube igual
   entre periodos: la del oficial pasa del 4,14 % al 5,51 %, y la de Cc del
   4,12 % al 5,62 %.
-- **En 2020 y en potencia sí mejora, con las cuatro subidas:** 40,4 % frente a
-  33,5 % de marzo a junio, 73,3 % frente a 67,5 % en abril, y potencia del
-  9,5 %, 15,8 %, 37,9 % y 63,2 % frente a 8,9 %, 13,9 %, 32,4 % y 55,3 %.
-  Con las subidas del 5 % y del 10 %, mejora en todos los quintiles. En Q1
-  casi duplica la potencia del 10 % (14,6 % frente a 7,5 %).
-- **C sin centrar, fuera de muestra, sí reduce las falsas alarmas:** 4,15 %
+- **En 2020 y en sensibilidad sí mejora, con las cuatro subidas:** 40,4 %
+  frente a 33,5 % de marzo a junio, 73,3 % frente a 67,5 % en abril, y
+  sensibilidad en 2017-2019 del 9,5 %, 15,8 %, 37,9 % y 63,2 % frente a
+  8,9 %, 13,9 %, 32,4 % y 55,3 %. Con las subidas del 5 % y del 10 %, mejora
+  en todos los quintiles. En Q1 casi duplica la sensibilidad con el 10 %
+  (14,6 % frente a 7,5 %).
+- **C sin centrar, fuera de muestra, sí reduce las alertas en calma:** 4,15 %
   frente a 5,51 %, un 25 % menos, y su tasa apenas cambia entre periodos
-  (4,14 % y 4,15 %). También mejora 2020 (39,0 % y 77,6 % en abril) y la
-  potencia con subidas del 10 % (63,6 % frente a 55,3 %). Con las del 5 %
-  queda prácticamente igual (32,8 % frente a 32,4 %), y con las pequeñas
-  detecta menos (1 %: 6,7 % frente a 8,9 %; 2 %: 11,1 % frente a 13,9 %).
-  Cumple el criterio tal como se aplicó en la sección anterior (subidas del
-  5 % y del 10 %), pero no con todas las subidas.
+  (4,14 % y 4,15 %). También mejora 2020 (39,0 % frente a 33,5 % de marzo a
+  junio; 77,6 % frente a 67,5 % en abril) y la sensibilidad en 2017-2019 con
+  subidas del 5 % y del 10 %: algo con las del 5 % (32,8 % frente a 32,4 %) y
+  bastante con las del 10 % (63,6 % frente a 55,3 %). Pero con las pequeñas
+  detecta menos (1 %: 6,7 % frente a 8,9 %; 2 %: 11,1 % frente a 13,9 %), y
+  su referencia mezcla estacionalidades (ver el caso de Madrid). Cumple el
+  criterio tal como se aplicó en la sección anterior (subidas del 5 % y del
+  10 %), pero no con todas las subidas.
 - En Q1, con subidas del 1 % y del 2 % la subida suele redondearse a 0
   personas, así que esas tasas son, sobre todo, la tasa de alertas sin
   subida.
 
-![Potencia frente a la tasa en calma por método](../resultados/validacion/potencia_frente_a_calma.png)
+![Sensibilidad ante subidas sintéticas frente a la tasa en calma por método](../resultados/validacion/potencia_frente_a_calma.png)
 
-En la figura, la potencia es la de 2017-2019. Los puntos huecos son C y Cc con
+En la figura, la sensibilidad es la de 2017-2019. Los puntos huecos son C y Cc con
 el umbral elegido fuera de muestra; los llenos, cada método con su umbral por
 defecto.
 
@@ -568,13 +596,16 @@ de muestra. Los otros explican por qué:
 - **A** predice 116.793 personas con una sobredispersión de 859, así que su
   intervalo es muy ancho.
 - **B** predice una subida de 1.831 personas, porque el resto de la Comunidad
-  subió en 1.941. La de Madrid está en línea con la región.
+  subió en 1.941. La de Madrid es compatible con la evolución del resto de la
+  Comunidad.
 
 **Alertas oficiales de octubre de 2026, local o regional según B**
 ([`clasificacion_octubre_2026.csv`](../resultados/validacion/clasificacion_octubre_2026.csv)).
-«Local» significa que B también marca el mes: la subida supera lo esperable
-dado el cambio del resto de la Comunidad. «Regional» significa que B no lo
-marca: la subida es compatible con la de la región. Las 15 son evaluables por
+«Local» significa que B también marca el mes: la subida destaca también frente
+al resto de la Comunidad, porque supera lo esperable dado su cambio.
+«Regional» significa que B no lo marca: la subida es compatible con la
+evolución del resto de la Comunidad. Son etiquetas estadísticas: no dicen la
+causa de la subida. Las 15 son evaluables por
 B: **13 son regionales y 2 locales**, Soto del Real (+31 personas, residuo de
 3,67 escalas) y Alameda del Valle (+9; 3,04). Madrid es regional: residuo de
 0,46 escalas.
@@ -590,44 +621,56 @@ C con el umbral elegido fuera de muestra, A y B).
 
 ### Recomendación para una versión futura del detector
 
-- **Ninguna alternativa mejora al oficial en las tres cosas a la vez con el
-  umbral elegido fuera de muestra.** Para esta entrega conviene mantener el
-  detector oficial.
-- **C centrado (Cc) da más sensibilidad con las mismas falsas alarmas.** Con
+- **Con el umbral elegido fuera de muestra, el oficial no es el mejor en
+  todo.** C sin centrar mejora la tasa en calma, la respuesta a 2020 y las
+  subidas del 5 % y del 10 %, pero pierde con las del 1 % y el 2 % y mezcla
+  estacionalidades. C centrado mejora 2020 y las cuatro subidas, pero no la
+  tasa en calma. Para esta entrega **se mantiene el detector oficial** por
+  continuidad, interpretabilidad y prudencia, no porque sea el mejor en todo:
+  - Continuidad: es el detector del contrato de `alertas.csv` y de la
+    aplicación, y todas las cifras publicadas salen de él.
+  - Interpretabilidad: «lo habitual» es la mediana del mismo mes en los 5 años
+    anteriores, fácil de explicar y de comprobar a mano.
+  - Prudencia: la evaluación fuera de muestra solo abarca 2017-2019 y 2020,
+    y las mejoras son pequeñas o mixtas.
+- **C centrado (Cc) da más sensibilidad con la misma tasa en calma.** Con
   el umbral elegido en 2012-2016 tiene la misma tasa en calma (5,62 % frente a
   5,51 %). Responde más en 2020 (40,4 % frente a 33,5 %) y detecta más las
-  cuatro subidas (del 5 %: 37,9 % frente a 32,4 %; del 10 %: 63,2 % frente a
-  55,3 %), y en todos los quintiles con las del 5 % y el 10 %. Conserva la
-  referencia oficial, así que «lo habitual» se explica igual; solo cambia
-  cómo se mide la dispersión. Si lo que se busca es detectar más sin más
-  falsas alarmas, es el mejor candidato.
-- **C sin centrar da menos falsas alarmas:** un 4,15 % frente al 5,51 %, con
-  una tasa estable entre periodos, más respuesta en 2020 y más potencia con
-  subidas del 10 %. Pero detecta menos las subidas del 1 % y del 2 %, y su
-  referencia mezcla estacionalidades (caso de Madrid). Si la prioridad es
-  reducir falsas alarmas, es el candidato, con esa reserva.
+  cuatro subidas sintéticas en 2017-2019 (del 5 %: 37,9 % frente a 32,4 %; del
+  10 %: 63,2 % frente a 55,3 %), y en todos los quintiles con las del 5 % y el
+  10 %. Conserva la referencia oficial, así que «lo habitual» se explica igual;
+  solo cambia cómo se mide la dispersión. Si lo que se busca es detectar más
+  sin más alertas en calma, es el mejor candidato.
+- **C sin centrar da menos alertas en calma:** un 4,15 % frente al 5,51 %,
+  con una tasa estable entre periodos, más respuesta en 2020 y más
+  sensibilidad en 2017-2019 con subidas del 5 % (32,8 % frente a 32,4 %) y del
+  10 % (63,6 % frente a 55,3 %). Pero detecta menos las subidas del 1 % y del
+  2 %, y su referencia mezcla estacionalidades (caso de Madrid). Si la
+  prioridad es reducir las alertas en calma, es el candidato, con esa reserva.
 - **Ninguna de las dos mejoras es grande, y la evaluación fuera de muestra
   solo abarca 2017-2019 y 2020.** Antes de cambiar el detector oficial,
-  conviene repetirla con más años y decidir qué se prioriza: menos falsas
-  alarmas (C) o más sensibilidad (Cc).
+  conviene repetirla con más años y decidir qué se prioriza: menos alertas en
+  calma (C) o más sensibilidad (Cc).
 - **Calibrar el umbral al 0,135 % no compensa:** C, Cc y C5 se quedan casi
-  sin potencia.
+  sin sensibilidad.
 - **B no sustituye al detector, pero sirve como complemento:** para etiquetar
   cada alerta como local o regional, como en octubre de 2026. Es el método
-  más potente para subidas locales.
+  más sensible a subidas sintéticas locales.
 - **A, tal como está simplificado, no se recomienda.**
 - **Los municipios pequeños siguen mal cubiertos:** fuera de muestra, C y Cc
-  detectan el 17,9 % y el 14,6 % de las subidas del 10 % en Q1, frente al
-  7,5 % del oficial. Es más, pero sigue siendo poco: con recuentos de pocas
+  detectan el 17,9 % y el 14,6 % de las subidas del 10 % en Q1 en 2017-2019,
+  frente al 7,5 % del oficial. Es más, pero sigue siendo poco: con recuentos de pocas
   personas, la información no da para más.
 
 ### Limitaciones de la comparación
 
 - Las del resto del documento: sin verdad de referencia, la serie empieza en
-  2005 y son recuentos, no tasas.
-- La inyección es local: sube un municipio y no el resto de la Comunidad. Eso
-  favorece a B. Un choque regional, como el de 2020, lo perjudica.
-- Los umbrales de la comparación con las mismas falsas alarmas y los de
+  2005, son recuentos, no tasas, y se trabaja con la versión actual de los
+  datos.
+- La subida sintética es local: sube un municipio y no el resto de la
+  Comunidad. Eso favorece a B. Un choque regional, como el de 2020, lo
+  perjudica.
+- Los umbrales de la comparación con la misma tasa en calma y los de
   `criterio_comparacion.csv` (1,9 para C y 2,9 para Cc) se eligen en
   2017-2019, que también se usa para evaluar. Los de C y Cc fuera de muestra
   se eligen en 2012-2016, pero 2012-2016 no es un periodo de calma: incluye
@@ -637,8 +680,8 @@ C con el umbral elegido fuera de muestra, A y B).
   episodio (2020). Las diferencias de una décima, como 5,62 % frente a
   5,51 %, no se distinguen de la variación entre periodos.
 - La calibración de C y Cc supone cambios normales e independientes, y en Cc
-  además la misma varianza en los tres meses. En calma se acercan a lo
-  nominal: 0,11 % y 0,16 % frente a 0,135 %.
+  además la misma varianza en los tres meses. En calma se acercan al objetivo
+  de la calibración: 0,11 % y 0,16 % frente a 0,135 %.
 - A es una versión simplificada de Farrington, sin repesado de valores
   atípicos ni contraste de la tendencia. Con esas piezas podría comportarse
   mejor.

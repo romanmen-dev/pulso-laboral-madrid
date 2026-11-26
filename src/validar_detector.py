@@ -862,14 +862,15 @@ def figura_potencia(potencia):
     ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g} %".replace(".", ",")))
     ax.set_ylim(0, 100)
     ax.set_xlim(-0.3, max(subidas) + 0.3)
-    ax.set_xlabel("Subida artificial sumada al cambio mensual (% del paro del mes anterior)")
+    ax.set_xlabel("Subida sintética sumada al cambio real del mes (% del paro del mes anterior)")
     ax.set_ylabel("Meses evaluables marcados con alerta")
-    ax.set_title("Curvas de potencia del detector oficial, meses evaluables de 2015 a 2019", pad=12)
+    ax.set_title("Sensibilidad ante subidas sintéticas del detector oficial, meses de 2015 a 2019", pad=12)
     ax.legend(title="Quintil de paro medio de 2019\n(Q1, municipios más pequeños)", loc="upper left", fontsize=9, title_fontsize=9)
     fig.text(
         0.01,
         -0.03,
-        "Con subida 0 % se ve la tasa de alertas sin inyección. Fuente: resultados/validacion/potencia.csv",
+        "Con subida 0 % se ve la tasa de alertas sin subida añadida. Son saltos de un solo mes, "
+        "no crisis graduales. Fuente: resultados/validacion/potencia.csv",
         fontsize=8,
         color=TINTA_SECUNDARIA,
     )
@@ -955,7 +956,7 @@ def main():
     guardar_csv(mensual, "validacion_mensual.csv")
     guardar_csv(resumen_anual(mensual), "validacion_anual.csv")
 
-    print("2. Falsas alarmas en calma")
+    print("2. Alertas en calma (2017-2019)")
     simulado, puntuacion_simulada = simular_normal(detector.MIN_OBSERVACIONES, UMBRAL_OFICIAL)
     guardar_csv(falsas_alarmas_calma(alertas, simulado), "calma_2017_2019.csv")
     guardar_csv(umbrales_calma(alertas), "umbrales_calma.csv")
@@ -965,12 +966,12 @@ def main():
     print("3. Episodio de 2020")
     guardar_csv(episodio_2020(alertas), "episodio_2020.csv")
 
-    print("4. Inyección sintética")
+    print("4. Sensibilidad ante subidas sintéticas")
     potencia = tabla_potencia(alertas, quintiles)
     guardar_csv(potencia, "potencia.csv")
     guardar_csv(quintiles, "quintiles_tamano.csv")
 
-    print("5. Sensibilidad")
+    print("5. Efecto de la ventana y del umbral")
     guardar_csv(tabla_sensibilidad(variantes), "sensibilidad.csv")
 
     print("6. Municipios pequeños")

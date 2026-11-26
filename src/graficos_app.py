@@ -437,7 +437,7 @@ POSICION_ETIQUETA_METODO = {
 
 
 def figura_metodos(curvas, puntos, columna, curva_de, p):
-    """Potencia frente a alertas en calma de cada método.
+    """Sensibilidad ante subidas sintéticas frente a alertas en calma de cada método.
 
     Líneas: cada método al mover su umbral. Puntos: el umbral de cada uno. El
     oficial en azul, la propuesta de versión 2 en verde agua y los demás en
@@ -474,7 +474,7 @@ def figura_metodos(curvas, puntos, columna, curva_de, p):
             name=punto["nombre"],
             hovertemplate=(
                 f"<b>{punto['nombre']}</b><br>Alertas en calma: %{{x:,.2f}} %"
-                "<br>Subidas detectadas: %{y:,.1f} %<extra></extra>"
+                "<br>Subidas sintéticas detectadas: %{y:,.1f} %<extra></extra>"
             ),
             showlegend=False,
         )
@@ -488,5 +488,5 @@ def figura_metodos(curvas, puntos, columna, curva_de, p):
         title_text="Alertas en calma, 2017-2019 (escala logarítmica): menos es mejor",
         showgrid=True,
     )
-    fig.update_yaxes(range=[0, 100], ticksuffix=" %", title_text="Subidas detectadas, 2017-2019: más es mejor")
+    fig.update_yaxes(range=[0, 100], ticksuffix=" %", title_text="Subidas sintéticas detectadas, 2017-2019: más es mejor")
     return fig

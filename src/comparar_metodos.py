@@ -1003,10 +1003,10 @@ def figura_potencia_frente_a_calma(resumen, curvas):
         eje.set_title(f"Subida del {subida} %", fontsize=11)
         eje.grid(axis="x", color="#e4e3df", lw=0.8)
 
-    ejes[0].set_ylabel("Potencia: meses de 2017-2019 con la subida detectada")
+    ejes[0].set_ylabel("Sensibilidad: meses de 2017-2019 con la subida sintética detectada")
     ejes[0].legend(loc="upper left", fontsize=8)
     fig.suptitle(
-        "Potencia frente a falsas alarmas en calma: arriba a la izquierda es mejor",
+        "Sensibilidad ante subidas sintéticas frente a alertas en calma: arriba a la izquierda es mejor",
         x=0.01,
         ha="left",
         fontsize=12,

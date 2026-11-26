@@ -20,8 +20,8 @@ URL_VALIDACION = f"{URL_REPOSITORIO}/docs/validacion.md"
 ANOS_CALMA = [2017, 2018, 2019]
 FECHA_EPISODIO = pd.Timestamp("2020-04-01")
 
-# Lo que se esperaría en calma con datos normales y referencia y escala
-# exactas: P(Z > 3).
+# Referencia de una normal con media y escala conocidas: P(Z > 3). No es la
+# tasa que debería dar el detector, que estima las dos con solo 5 cambios.
 PCT_TEORICO = 100 * 0.5 * math.erfc(3 / math.sqrt(2))
 
 # Puntos de la figura de métodos (claves de resumen_metodos.csv) y la curva
@@ -97,7 +97,8 @@ def tasa_calma(mensual):
 
 
 # ---------------------------------------------------------------
-# Potencia por tamaño de municipio
+# Sensibilidad ante subidas sintéticas, por tamaño de municipio
+# (en los CSV, columnas «potencia_*» y potencia.csv)
 # ---------------------------------------------------------------
 
 def potencia_por_tamano(potencia):
@@ -117,9 +118,20 @@ def tabla_potencia_ancha(potencia):
     return vista
 
 
-def deteccion(potencia, subida_pct, quintil="Todos"):
+def deteccion(potencia, subida_pct, quintil="Todos", columna="tasa_deteccion_pct"):
     fila = potencia.loc[potencia["subida_pct"].eq(subida_pct) & potencia["quintil"].eq(quintil)]
-    return float(fila["tasa_deteccion_pct"].iloc[0])
+    return float(fila[columna].iloc[0])
+
+
+def frase_sin_alerta_previa(potencia):
+    """Detección contando solo los meses que no tenían ya alerta sin la subida."""
+    sin_previa = "tasa_deteccion_sin_alerta_previa_pct"
+    return (
+        "En 2015-2019, contando solo los meses que no tenían ya alerta sin la subida, se detecta el "
+        f"{porcentaje(deteccion(potencia, 5.0, columna=sin_previa))} de las subidas del 5 % y el "
+        f"{porcentaje(deteccion(potencia, 10.0, columna=sin_previa))} de las del 10 % (con todos los "
+        f"meses, el {porcentaje(deteccion(potencia, 5.0))} y el {porcentaje(deteccion(potencia, 10.0))})."
+    )
 
 
 # ---------------------------------------------------------------
@@ -127,7 +139,7 @@ def deteccion(potencia, subida_pct, quintil="Todos"):
 # ---------------------------------------------------------------
 
 def puntos_metodos(resumen):
-    """Cada método con su umbral: tasa en calma y potencia en 2017-2019."""
+    """Cada método con su umbral: tasa en calma y sensibilidad en 2017-2019."""
     tabla = resumen.loc[resumen["metodo"].isin(METODOS_FIGURA)].copy()
     tabla["nombre"] = tabla["metodo"].map(METODOS_FIGURA)
     tabla["orden"] = tabla["metodo"].map({m: i for i, m in enumerate(METODOS_FIGURA)})
@@ -149,16 +161,21 @@ def fila_metodo(resumen, metodo):
 def frase_compromiso(resumen):
     oficial = fila_metodo(resumen, "oficial")
     v2 = fila_metodo(resumen, METODO_V2)
+    c = fila_metodo(resumen, "C_fm")
     return (
         "Cada línea es un método al mover su umbral: un umbral más bajo detecta más "
-        "subidas, pero también da más alertas en calma, que son casi todas falsas "
-        "alarmas. Un método es mejor si su línea queda más arriba con las mismas "
-        "falsas alarmas. Con casi las mismas alertas en calma que el oficial "
+        "subidas sintéticas, pero también da más alertas en calma. Sin anomalías "
+        "verificadas no se sabe cuántas de esas alertas son falsas, así que los métodos "
+        "se comparan con la misma tasa en calma: es mejor la línea que queda más arriba. "
+        "En 2017-2019, con casi la misma tasa en calma que el oficial "
         f"({porcentaje(v2['pct_alertas_calma'])} frente a {porcentaje(oficial['pct_alertas_calma'])}), "
         f"C centrado detecta el {porcentaje(v2['potencia_5pct_2017_2019'])} de las subidas del 5 % "
-        f"(el oficial, el {porcentaje(oficial['potencia_5pct_2017_2019'])}). El método B detecta "
-        "más subidas locales, pero no reacciona a una crisis que afecta a toda la Comunidad, "
-        "como la de 2020."
+        f"(el oficial, el {porcentaje(oficial['potencia_5pct_2017_2019'])}). C ampliado da menos "
+        f"alertas en calma ({porcentaje(c['pct_alertas_calma'])}) y detecta más las subidas del 10 % "
+        f"({porcentaje(c['potencia_10pct_2017_2019'])} frente a "
+        f"{porcentaje(oficial['potencia_10pct_2017_2019'])}), pero menos las del 1 % y el 2 %. "
+        "El método B detecta más subidas locales, pero no reacciona a una crisis que afecta "
+        "a toda la Comunidad, como la de 2020."
     )
 
 
@@ -170,48 +187,60 @@ def limitaciones(mensual, resumen, potencia):
     oficial = fila_metodo(resumen, "oficial")
     return [
         (
-            f"**Alertas en calma.** En 2017-2019 salta la alerta en el {porcentaje(tasa_calma(mensual))} "
-            "de los meses evaluables, cuando con datos normales y una referencia exacta se "
-            f"esperaría un {porcentaje(PCT_TEORICO, 3)}. La causa principal es estimar la "
-            "dispersión con solo 5 cambios. Por eso, una alerta pide revisar, no confirma nada."
+            "**Sin verdad de referencia.** No hay una lista de anomalías municipales "
+            "confirmadas: se mide cuántas alertas da el detector y si detecta subidas "
+            "añadidas a mano, no su acierto. Tampoco se puede saber cuántas alertas son falsas."
+        ),
+        (
+            "**Alertas en calma.** En 2017-2019, un periodo de referencia estable, salta la "
+            f"alerta en el {porcentaje(tasa_calma(mensual))} de los meses evaluables. El "
+            f"{porcentaje(PCT_TEORICO, 3)} de una normal con media y dispersión conocidas no es la "
+            "tasa que debería dar este detector: estima la dispersión con solo 5 cambios, y con "
+            "tan pocos datos la puntuación supera 3 más a menudo. Una alerta pide revisar, no "
+            "confirma nada."
         ),
         (
             "**Municipios pequeños.** En el 20 % de municipios con menos paro, el "
-            f"{porcentaje(oficial['pct_no_evaluables_Q1'])} de los meses no se puede evaluar "
-            "(dispersión cero), y una subida del 10 % se detecta solo en el "
-            f"{porcentaje(deteccion(potencia, 10.0, 'Q1'))} de los meses: con pocas personas en "
-            "paro, la información no da para más."
+            f"{porcentaje(oficial['pct_no_evaluables_Q1'])} de los meses desde 2010 no se puede "
+            "evaluar (dispersión cero), y una subida sintética del 10 % se detecta solo en el "
+            f"{porcentaje(deteccion(potencia, 10.0, 'Q1'))} de los meses de 2015-2019: con pocas "
+            "personas en paro, la información no da para más."
         ),
         (
-            f"**Subidas moderadas.** Una subida de un mes del 5 % se detecta en el "
-            f"{porcentaje(deteccion(potencia, 5.0))} de los meses, y una del 10 %, en el "
-            f"{porcentaje(deteccion(potencia, 10.0))}."
+            "**Subidas sintéticas moderadas.** En 2015-2019, una subida puntual del 5 % se detecta "
+            f"en el {porcentaje(deteccion(potencia, 5.0))} de los meses, y una del 10 %, en el "
+            f"{porcentaje(deteccion(potencia, 10.0))}. Son saltos de un solo mes: la prueba no dice "
+            "cómo responde a crisis graduales o prolongadas."
         ),
         (
-            "**Sin verdad de referencia.** No hay una lista de anomalías municipales "
-            "confirmadas: se mide cuántas alertas da el detector y si detecta subidas "
-            "añadidas a mano, no su acierto."
+            "**Versión actual de los datos.** Se trabaja con la versión actual de los datos, no "
+            "con la que existía en cada fecha."
         ),
     ]
 
 
 def tabla_propuesta_v2(resumen):
-    """Oficial frente a la propuesta de versión 2, con el umbral elegido fuera de muestra."""
+    """Oficial frente a C centrado (propuesta de versión 2) y C ampliado, los dos con
+    el umbral elegido fuera de muestra."""
     oficial = fila_metodo(resumen, "oficial")
     v2 = fila_metodo(resumen, METODO_V2)
+    c = fila_metodo(resumen, "C_fm")
     medidas = [
         ("Alertas en calma, 2017-2019 (menos es mejor)", "pct_alertas_calma"),
         ("Alertas en marzo-junio de 2020", "pct_alertas_mar_jun_2020"),
         ("Alertas en abril de 2020", "pct_alertas_abril_2020"),
-        ("Subidas del 5 % detectadas, 2017-2019", "potencia_5pct_2017_2019"),
-        ("Subidas del 10 % detectadas, 2017-2019", "potencia_10pct_2017_2019"),
+        ("Subidas sintéticas del 1 % detectadas, 2017-2019", "potencia_1pct_2017_2019"),
+        ("Subidas sintéticas del 2 % detectadas, 2017-2019", "potencia_2pct_2017_2019"),
+        ("Subidas sintéticas del 5 % detectadas, 2017-2019", "potencia_5pct_2017_2019"),
+        ("Subidas sintéticas del 10 % detectadas, 2017-2019", "potencia_10pct_2017_2019"),
         ("Meses no evaluables", "pct_no_evaluables"),
     ]
     return pd.DataFrame(
         {
             "Medida": [nombre for nombre, _ in medidas],
-            "Oficial": [porcentaje(oficial[c]) for _, c in medidas],
-            "Propuesta v2 (C centrado)": [porcentaje(v2[c]) for _, c in medidas],
+            "Oficial": [porcentaje(oficial[col]) for _, col in medidas],
+            "Propuesta v2 (C centrado)": [porcentaje(v2[col]) for _, col in medidas],
+            "C ampliado": [porcentaje(c[col]) for _, col in medidas],
         }
     )
 
@@ -225,7 +254,13 @@ def frase_propuesta_v2(resumen):
         "centrado en la mediana de su mes. El umbral, "
         f"{datos.numero(v2['umbral'], 2)}, se eligió con 2012-2016 para dar las mismas "
         "alertas que el oficial en esos años, y se evaluó después en 2017-2019 y 2020. Con "
-        "casi las mismas falsas alarmas, detecta más. No reduce las falsas alarmas y solo "
-        "se ha comprobado en tres años de calma y un episodio, así que no sustituye todavía "
-        "al detector oficial."
+        "casi la misma tasa de alertas en calma, responde más en 2020 y detecta más subidas "
+        "sintéticas, pero no reduce las alertas en calma.\n\n"
+        "**C ampliado**, con su umbral elegido de la misma manera, sí las reduce, responde "
+        "más en 2020 y detecta algo más las subidas del 5 % y bastante más las del 10 %. "
+        "Pero detecta menos las del 1 % y el 2 %, y su cambio habitual mezcla meses con "
+        "estacionalidad distinta.\n\n"
+        "**Se mantiene el detector oficial** por continuidad, porque es más fácil de "
+        "interpretar y por prudencia: la evaluación fuera de muestra solo abarca tres años "
+        "de calma y un episodio. No es porque sea el mejor en todo."
     )
