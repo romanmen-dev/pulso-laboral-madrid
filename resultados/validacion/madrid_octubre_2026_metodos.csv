@@ -1,0 +1,6 @@
+﻿metodo;municipio;fecha;paro_total;cambio_mensual;evaluacion;limite_cambio;alerta;referencia_cambio;escala_robusta;umbral;n_cambios;prediccion_paro;sobredispersion;cambio_resto_comunidad;prediccion_cambio
+oficial;Madrid;2026-10-01;138652.0;2130.0;evaluable;826.0215999999999;True;61.0;255.00719999999998;3.0;;;;;
+C5;Madrid;2026-10-01;138652.0;2130.0;evaluable;7197.698160815936;False;61.0;255.00719999999998;27.9862614107207;;;;;
+C;Madrid;2026-10-01;138652.0;2130.0;evaluable;9545.191871192188;False;-1112.0;1994.097;5.3443698431882645;15.0;;;;
+A;Madrid;2026-10-01;138652.0;2130.0;evaluable;16332.666922078904;False;;;;;116792.9380678167;858.6111467532197;;
+B;Madrid;2026-10-01;138652.0;2130.0;evaluable;3783.8583972459483;False;;651.0686163410123;;;;;1941.0;1830.6525482229115
