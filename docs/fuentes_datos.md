@@ -1,7 +1,8 @@
 # Fuentes de datos
 
 Fecha de descarga: 18 de noviembre de 2026 (paro y contratos) y 20 de
-noviembre de 2026 (municipios y límites municipales).
+noviembre de 2026 (municipios y límites municipales) y 26 de noviembre de
+2026 (población del censo anual).
 
 ## Paro registrado por edad y municipio
 
@@ -121,9 +122,45 @@ noviembre de 2026 (municipios y límites municipales).
   municipio, excluir las comunidades jurisdiccionales y simplificar la
   geometría (src/preparar_mapa.py).
 
+## Población censada por edad (Censo de Población Anual)
+
+- Organismo: Instituto de Estadística de la Comunidad de Madrid. Fuente:
+  «Censo de Población Anual. INE.», según los metadatos del portal.
+- Página de origen:
+  https://datos.comunidad.madrid/dataset/poblacion_censada_por_edad_nacionalidad_y_sexo
+  («Población censada por edad, nacionalidad y sexo. Censo anual.
+  Municipios»).
+- Archivo local: datos/originales/poblacion_censo_anual_edad.csv (UTF-8 con
+  BOM, separador `;`). Descargado el 26/11/2026.
+- Contenido: población a 1 de enero de 2021 a 2025, en grupos quinquenales
+  de edad (de «0-4» a «100 y más»), por nacionalidad y sexo, de los 179
+  municipios todos los años, más el total de la Comunidad y las zonas
+  estadísticas. El código municipal tiene 4 cifras: las 3 del municipio y el
+  dígito de control.
+- Uso: denominador del indicador de contexto de la ficha, paro registrado
+  por cada 1.000 habitantes de 15 a 64 años (src/preparar_poblacion.py y
+  docs/decisiones.md, 26/11/2026). Al ser quinquenales los grupos, se usa de
+  15 a 64 años y no de 16 a 64. No interviene en el detector.
+- No es el padrón: el censo anual del INE es otra estadística. En el portal
+  no hay una serie anual del padrón por edad y municipio. Se descartaron:
+  - `padron_por_sexo` («Población empadronada por sexo. Municipios»): padrón
+    de 1985 a 2025, pero solo por sexo.
+  - `residentes_por_rango_edad`: padrón por edad quinquenal y sexo de los 179
+    municipios, pero de un solo momento y sin columna de año. Su total
+    (6.507.184) coincide con el padrón a 1 de enero de 2017.
+- Indicador oficial parecido: el portal publica «Paro registrado por 100
+  habitantes. Municipios»
+  (https://datos.comunidad.madrid/dataset/1902280). Usa el paro registrado a
+  31 de marzo de cada año y la población total del municipio (cifras
+  oficiales del padrón a 1 de enero). El de la ficha es distinto: usa el paro
+  de cada mes, se expresa por 1.000 y su denominador es solo la población de
+  15 a 64 años, que es la que está en edad de trabajar. Por eso no coincide
+  con el oficial ni debe compararse con él.
+- Licencia: CC BY 4.0, según los metadatos del portal.
+
 ## Licencia y atribución
 
-- Licencia de los dos conjuntos: Creative Commons Reconocimiento 4.0
+- Licencia de los conjuntos del portal: Creative Commons Reconocimiento 4.0
   (CC BY 4.0), según los metadatos del portal consultados el 20/11/2026:
   https://creativecommons.org/licenses/by/4.0/legalcode.es
 - Los publica el Instituto de Estadística de la Comunidad de Madrid en el
@@ -132,8 +169,9 @@ noviembre de 2026 (municipios y límites municipales).
 - Atribución que usa el proyecto en el pie de la aplicación y en
   datos/publicados/publicacion.json:
   > Datos: Portal de Datos Abiertos de la Comunidad de Madrid, con licencia
-  > CC BY 4.0. Fuente: D. G. del Servicio Público de Empleo. Este proyecto
-  > los transforma: series mensuales y alertas experimentales calculadas.
+  > CC BY 4.0. Fuente: D. G. del Servicio Público de Empleo; población de la
+  > ficha: Censo de Población Anual (INE). Este proyecto los transforma:
+  > series mensuales y alertas experimentales calculadas.
 - El mapa de la aplicación cita, bajo el propio mapa: «Límites municipales:
   Información geográfica de la Comunidad de Madrid (Geoportal IDEM), CC BY
   4.0».

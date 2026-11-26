@@ -33,6 +33,9 @@ PROCESADOS = [
     RAIZ / "datos" / "procesados" / "contratos_mensuales.csv",
 ]
 MAPA = RAIZ / "datos" / "procesados" / "municipios_mapa.geojson"
+# Población de 15 a 64 años del indicador de contexto de la ficha. No entra en
+# alertas.csv, así que no se compara su fecha con la de las alertas.
+POBLACION = RAIZ / "datos" / "procesados" / "poblacion_15_64.csv"
 
 # Resultados de la validación que muestra la aplicación: pestaña «¿Cómo
 # sabemos que funciona?», etiqueta local/regional y otros métodos de la ficha
@@ -46,7 +49,7 @@ ARCHIVOS_VALIDACION = [
     VALIDACION / "clasificacion_local_regional.csv",
     VALIDACION / "otros_metodos.csv",
 ]
-ARCHIVOS = [ALERTAS, *PROCESADOS, MAPA, *ARCHIVOS_VALIDACION]
+ARCHIVOS = [ALERTAS, *PROCESADOS, MAPA, POBLACION, *ARCHIVOS_VALIDACION]
 
 # Scripts que generan los datos. Si tienen cambios sin commit, el commit
 # anotado en publicacion.json no basta para reproducir la copia.
@@ -56,6 +59,7 @@ CADENA = [
     "src/preparar_datos.py",
     "src/detectar_alertas.py",
     "src/preparar_mapa.py",
+    "src/preparar_poblacion.py",
     "src/validar_detector.py",
     "src/comparar_metodos.py",
 ]
@@ -67,6 +71,9 @@ PAGINAS = {
     "paro_edad_municipio.csv": "https://datos.comunidad.madrid/dataset/paro_registrado_edad_municipio",
     "contratos_municipio.csv": "https://datos.comunidad.madrid/dataset/contratos_trabajo_municipio",
     "municipios_comunidad_madrid.csv": "https://datos.comunidad.madrid/dataset/municipio_comunidad_madrid",
+    "poblacion_censo_anual_edad.csv": (
+        "https://datos.comunidad.madrid/dataset/poblacion_censada_por_edad_nacionalidad_y_sexo"
+    ),
     "limites_municipales_idem.csv": (
         "https://idem.comunidad.madrid/catalogocartografia/srv/spa/catalog.search"
         "#/metadata/spacm_divisionesadmin"
@@ -75,15 +82,16 @@ PAGINAS = {
 ATRIBUCION = {
     "fuente": (
         "Comunidad de Madrid. Portal de Datos Abiertos (datos.comunidad.madrid). "
-        "Fuente de los datos: D. G. del Servicio Público de Empleo. Límites "
+        "Fuente de los datos: D. G. del Servicio Público de Empleo. Población: "
+        "Censo de Población Anual, INE. Límites "
         "municipales: Información geográfica de la Comunidad de Madrid (Geoportal IDEM)."
     ),
     "licencia": "CC BY 4.0",
     "url_licencia": "https://creativecommons.org/licenses/by/4.0/legalcode.es",
     "modificaciones": (
         "Datos transformados por Pulso Laboral Madrid: series mensuales, nombres "
-        "de municipio armonizados, alertas experimentales calculadas y límites "
-        "municipales simplificados."
+        "de municipio armonizados, alertas experimentales calculadas, población "
+        "de 15 a 64 años agregada por municipio y límites municipales simplificados."
     ),
 }
 
@@ -117,7 +125,7 @@ def comprobar_entradas():
             "Faltan archivos: "
             + ", ".join(str(r.relative_to(RAIZ)) for r in faltan)
             + ". Ejecuta antes preparar_datos.py, detectar_alertas.py, "
-            "validar_detector.py y comparar_metodos.py."
+            "preparar_poblacion.py, validar_detector.py y comparar_metodos.py."
         )
 
     recientes = [r for r in PROCESADOS if r.stat().st_mtime > ALERTAS.stat().st_mtime]

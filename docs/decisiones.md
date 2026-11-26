@@ -238,3 +238,35 @@ tales hasta que se adopten.
   en la validación (30,3 % y 55,4 % con subidas del 5 % y del 10 %) y de
   2017-2019 en la comparación fuera de muestra (32,4 % y 55,3 %).
 - No cambia ningún cálculo ni ningún resultado.
+
+### 26/11/2026 — Paro registrado por cada 1.000 habitantes de 15 a 64 años
+
+- Decisión: la ficha de municipio muestra, como indicador de contexto, el
+  paro registrado del mes por cada 1.000 habitantes de 15 a 64 años. No
+  interviene en el detector: ni `src/detectar_alertas.py` ni
+  `docs/contrato_alertas.md` cambian.
+- Denominador: población del Censo de Población Anual del INE a 1 de enero,
+  publicado en el portal por el Instituto de Estadística
+  (docs/fuentes_datos.md). El portal no tiene una serie anual del padrón por
+  edad y municipio. El censo trae grupos quinquenales, así que se usa de
+  15 a 64 años y no de 16 a 64.
+- Sin información futura, por año de referencia: la población a 1 de enero
+  de un año se usa para los meses de ese año. Los meses de 2026 usan la de
+  2025, el último año publicado. Los meses anteriores a 2021 muestran «No
+  disponible: la población por edad empieza en 2021»; no se usa la foto del
+  padrón de 2017 (`residentes_por_rango_edad`) para no mezclar fuentes.
+- Retraso de publicación: la cifra de un año se publica después del 1 de
+  enero al que se refiere (el portal actualizó la de 2025 el 20/01/2026). Por
+  eso, durante los primeros meses de cada año la población que usa la ficha
+  todavía no estaba publicada en ese momento. Se acepta porque es un dato de
+  contexto que no entra en ninguna alerta, y el portal no da la fecha de
+  publicación de cada año para poder usarla.
+- Texto de la ficha: «Indicador de contexto, no la tasa de paro oficial (que
+  se calcula sobre la población activa). El paro incluye a todos los
+  inscritos, también a los de 65 o más.» El numerador incluye a los parados
+  de 65 o más (y el paro por edad del portal no permite separarlos), y el
+  denominador no: el indicador sobrestima ligeramente la relación con la
+  población de 15 a 64.
+- Preparación en `src/preparar_poblacion.py`: cruce por código INE con la
+  misma correspondencia nombre-código que el mapa. Se detiene si a algún
+  municipio le falta la población de algún año.

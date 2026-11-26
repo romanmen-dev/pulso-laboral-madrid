@@ -169,6 +169,11 @@ def cargar_contratos(ruta, marca_tiempo):
     return datos.leer_contratos(ruta)
 
 
+@st.cache_data(show_spinner="Leyendo la población…")
+def cargar_poblacion(ruta, marca_tiempo):
+    return datos.leer_poblacion(ruta)
+
+
 @st.cache_data(show_spinner="Leyendo el mapa…")
 def cargar_mapa(ruta, marca_tiempo):
     return datos.leer_mapa(ruta)
@@ -448,7 +453,7 @@ def tres_cifras(fila):
         st.caption("Sin límite de alerta: este mes no se puede evaluar con la regla.")
 
 
-def ficha(alertas, fecha, municipio, paro_edad, contratos, paleta, clasificacion, otros_metodos):
+def ficha(alertas, fecha, municipio, paro_edad, contratos, paleta, clasificacion, otros_metodos, poblacion):
     fila = datos.fila_municipio(alertas, municipio, fecha)
 
     st.subheader(f"{municipio} · {datos.nombre_mes(fecha)}")
@@ -471,6 +476,7 @@ def ficha(alertas, fecha, municipio, paro_edad, contratos, paleta, clasificacion
         st.info(texto, icon=":material/block:")
 
     tres_cifras(fila)
+    paro_por_poblacion(fila, poblacion)
 
     serie = datos.serie_municipio(alertas, municipio, fecha, MESES_FICHA)
     st.markdown(f"##### Paro registrado: {len(serie)} meses hasta {datos.mes_corto(fecha)}")
@@ -511,6 +517,15 @@ def ficha(alertas, fecha, municipio, paro_edad, contratos, paleta, clasificacion
             mostrar_tabla(cambios)
 
     contratos_del_municipio(contratos, municipio, fecha, paleta)
+
+
+def paro_por_poblacion(fila, poblacion):
+    """Indicador de contexto: no interviene en el detector."""
+    if poblacion is None:
+        return
+    etiqueta, valor = datos.texto_paro_poblacion(fila, poblacion)
+    st.markdown(f"**{etiqueta}:** {valor}")
+    st.caption(datos.NOTA_PARO_POBLACION)
 
 
 def contratos_del_municipio(contratos, municipio, fecha, paleta):
@@ -728,6 +743,7 @@ paleta = graficos.paleta(modo_oscuro())
 paro_edad = cargar_si_existe(rutas["paro_edad"], cargar_paro_edad)
 contratos = cargar_si_existe(rutas["contratos"], cargar_contratos)
 mapa = cargar_si_existe(rutas["mapa"], cargar_mapa)
+poblacion = cargar_si_existe(rutas["poblacion"], cargar_poblacion)
 clasificacion = cargar_si_existe(rutas["clasificacion"], cargar_clasificacion)
 otros_metodos = cargar_si_existe(rutas["otros_metodos"], cargar_otros_metodos)
 resultados_validacion = {
@@ -745,7 +761,7 @@ with pestana_general:
     vista_general(alertas, fecha, mapa, paleta, clasificacion)
 
 with pestana_ficha:
-    ficha(alertas, fecha, municipio, paro_edad, contratos, paleta, clasificacion, otros_metodos)
+    ficha(alertas, fecha, municipio, paro_edad, contratos, paleta, clasificacion, otros_metodos, poblacion)
 
 with pestana_cambios:
     cambios_frente_al_limite(alertas, fecha, municipio, paleta)
@@ -757,8 +773,8 @@ st.divider()
 st.caption(
     f"Datos: [Portal de Datos Abiertos de la Comunidad de Madrid]({identidad.URL_PORTAL}), "
     f"con licencia [CC BY 4.0]({identidad.URL_LICENCIA}). Fuente: D. G. del Servicio "
-    "Público de Empleo. Este proyecto los transforma: series mensuales y alertas "
-    "experimentales calculadas."
+    "Público de Empleo; población de la ficha: Censo de Población Anual (INE). Este "
+    "proyecto los transforma: series mensuales y alertas experimentales calculadas."
 )
 st.caption(
     "Proyecto independiente para DATAMAD 2026; no es una herramienta oficial "
