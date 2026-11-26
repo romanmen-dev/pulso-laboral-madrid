@@ -1,0 +1,14 @@
+﻿medida;valor;descripcion
+meses_evaluables;6006.0;Municipio-mes evaluables de 2017 a 2019
+alertas;331.0;Alertas experimentales en esos meses
+pct_alertas_evaluables;5.511155511155511;% de alertas entre evaluables
+pct_teorico_normal;0.1349898031630096;P(Z > 3) con normalidad y referencia y escala conocidas
+pct_simulado_normal_5_observaciones;7.576;% de puntuaciones > 3 con datos normales y mediana y MAD de 5 observaciones (simulación: 1.000.000 repeticiones, semilla 2026)
+cociente_observado_teorico;40.82645786586122;Observado / teórico
+cociente_observado_simulado;0.7274492490965564;Observado / simulado
+pct_puntuacion_mayor_3;7.425907425907426;% de evaluables con puntuación > 3, suba o no el paro
+pct_puntuacion_menor_menos_3;5.128205128205129;% de evaluables con puntuación < −3 (cola inferior)
+puntuacion_mediana_evaluables;0.09635582278237075;"Mediana de la puntuación robusta; con referencia sin sesgo sería cercana a 0"
+pct_evaluables_mad_hasta_1;14.86846486846487;% de evaluables con MAD de 1 persona o menos
+pct_alertas_mad_hasta_1;9.854423292273236;% de alertas entre evaluables con MAD de 1 persona o menos
+pct_alertas_mad_mayor_1;4.752591433600625;% de alertas entre evaluables con MAD mayor de 1 persona
