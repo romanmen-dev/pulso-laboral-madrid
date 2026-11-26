@@ -42,7 +42,7 @@ Está pensada para estos usuarios potenciales. Todavía no se ha probado con ell
 > Ejemplo ilustrativo con los datos reales de octubre de 2026. Muestra cómo se usaría la herramienta; no describe un uso real.
 
 1. **Detectar.** En la vista general de octubre de 2026, Madrid aparece entre los 15 municipios con alerta experimental. La columna «Tipo» indica que su alerta es regional; solo 2 de las 15 son locales.
-2. **Abrir la ficha.** Al seleccionar su fila se abre la ficha: el paro subió 2.130 personas, cuando lo habitual en octubre era +61 y el límite de alerta, +826. Es una alerta regional: el paro sube en línea con el conjunto de la Comunidad. El grupo con mayor aumento es el de 25 a 44 años (+1.074).
+2. **Abrir la ficha.** Al seleccionar su fila se abre la ficha: el paro subió 2.130 personas, cuando lo habitual en octubre era +61 y el límite de alerta, +826. Es una alerta regional: la subida es compatible con la evolución del resto de la Comunidad. El grupo con mayor aumento es el de 25 a 44 años (+1.074).
 3. **Contrastar.** La pestaña «Cambios frente al límite» muestra si la subida es aislada o se repite en otros meses. El técnico lo cruza con la información local que conozca. Al final de la ficha, en una sección aparte y plegada, «Contratos registrados en centros de trabajo del municipio», están los contratos del municipio. No se comparan con el paro: se cuentan por centro de trabajo y son contratos, no personas.
 4. **Decidir si investigar.** La alerta no explica la causa: indica que la subida merece una revisión. Investigar o no es una decisión del técnico.
 
@@ -68,7 +68,7 @@ Cada paso es un script de `src/` (ver [Instalación y reproducción](#instalaci�
 
 El método completo, con fórmulas, validación, comparación con otros métodos y limitaciones, está en [`docs/metodologia.md`](docs/metodologia.md), en una página. El formato de los resultados está en [`docs/contrato_alertas.md`](docs/contrato_alertas.md), y el desarrollo inicial, en [`notebooks/02_detector_inicial.ipynb`](notebooks/02_detector_inicial.ipynb).
 
-Cada alerta lleva además una etiqueta de contraste, **local** o **regional**, que no cambia su estado. Es local si el paro sube más que en el resto de la Comunidad y regional si sube en línea con ella. La calcula un segundo método (B) a partir de la relación del municipio con el resto de la Comunidad en los 60 meses anteriores.
+Cada alerta lleva además una etiqueta de contraste, **local** o **regional**, que no cambia su estado. Es local si la subida destaca también frente al resto de la Comunidad y regional si es compatible con la evolución del resto de la Comunidad. Son etiquetas estadísticas, no causas: no dicen por qué sube el paro. La calcula un segundo método (B) a partir de la relación del municipio con el resto de la Comunidad en los 60 meses anteriores.
 
 ## Resultados
 
@@ -94,13 +94,13 @@ Cifras calculadas sobre la tabla de alertas que usa la aplicación ([`datos/publ
 No hay una lista de anomalías municipales confirmadas, así que se mide el comportamiento del detector, sin información futura, de febrero de 2010 a octubre de 2026. Resultados completos en [`docs/validacion.md`](docs/validacion.md) y resumen en [`docs/metodologia.md`](docs/metodologia.md).
 
 - **Responde a una crisis conocida.** En abril de 2020 saltó la alerta en el 67,5 % de los municipios evaluables (114 de 169), frente al 5,5 % en los abriles de 2017-2019.
-- **Da más alertas en calma de lo nominal.** En 2017-2019, años sin crisis, marca el 5,51 % de los meses, frente al 0,135 % teórico. La causa es estimar la dispersión con solo 5 cambios.
-- **Detecta las subidas grandes en los municipios grandes.** Sumando a mano una subida al cambio de un mes, detecta el 30,3 % de las del 5 % y el 55,4 % de las del 10 %. Con la del 10 %, el 94,8 % en el 20 % de municipios con más paro y el 8,4 % en el 20 % con menos.
-- **No se recomienda todavía otro método.** Se ha comparado con tres alternativas. Con el umbral elegido fuera de muestra, ninguna mejora a la vez las alertas en calma, la respuesta a 2020 y la potencia. La propuesta para una versión 2, «C centrado», da casi las mismas alertas en calma (5,62 % frente a 5,51 %) y detecta más (37,9 % frente a 32,4 % de las subidas del 5 %).
+- **Marca un 5,5 % de los meses en calma.** En 2017-2019, periodo de referencia estable, salta la alerta en el 5,51 % de los meses. Sin anomalías verificadas no se puede saber cuántas de esas alertas son falsas, así que se habla de tasa de alertas en calma. El 0,135 % de una normal con parámetros conocidos no es la tasa que debería dar este detector: al estimar la dispersión con solo 5 cambios, datos normales ya darían un 7,58 % de puntuaciones mayores que 3.
+- **Detecta las subidas sintéticas grandes en los municipios grandes.** Sumando a mano una subida al cambio real de un mes de 2015-2019, que puede ser negativo, detecta el 30,3 % de las del 5 % y el 55,4 % de las del 10 % (el 27,0 % y el 53,2 % contando solo los meses sin alerta previa). Con la del 10 %, el 94,8 % en el 20 % de municipios con más paro y el 8,4 % en el 20 % con menos. Son saltos de un solo mes, no crisis graduales ni prolongadas.
+- **Se mantiene el detector oficial, aunque no es el mejor en todo.** Se ha comparado con tres alternativas, con el umbral elegido fuera de muestra y evaluadas en 2017-2019 y 2020. C, que amplía la referencia a los meses contiguos, da menos alertas en calma (4,15 % frente a 5,51 %), responde más en 2020 y detecta más las subidas del 5 % y del 10 %, pero menos las del 1 % y el 2 %, y mezcla meses con estacionalidad distinta. La propuesta para una versión 2, «C centrado», da casi las mismas alertas en calma (5,62 %) y detecta más (37,9 % frente a 32,4 % de las subidas del 5 % en 2017-2019). Se mantiene el oficial por continuidad, interpretabilidad y prudencia.
 
-La aplicación lo muestra en la pestaña **«¿Cómo sabemos que funciona?»**: alertas por mes, el episodio de 2020, la potencia por tamaño de municipio, la comparación de métodos y las limitaciones medidas.
+La aplicación lo muestra en la pestaña **«¿Cómo sabemos que funciona?»**: alertas por mes, el episodio de 2020, la sensibilidad ante subidas sintéticas por tamaño de municipio, la comparación de métodos y las limitaciones medidas.
 
-![Pestaña «¿Cómo sabemos que funciona?» de la aplicación: alertas por mes de 2010 a 2026 con abril de 2020 marcado, curvas de potencia por tamaño de municipio y comparación de métodos](docs/capturas/como_sabemos_que_funciona.png)
+![Pestaña «¿Cómo sabemos que funciona?» de la aplicación: alertas por mes de 2010 a 2026 con abril de 2020 marcado, sensibilidad ante subidas sintéticas por tamaño de municipio y comparación de métodos](docs/capturas/como_sabemos_que_funciona.png)
 
 ## Datos
 
@@ -126,12 +126,14 @@ Más detalle en [`docs/fuentes_datos.md`](docs/fuentes_datos.md).
 > **Una alerta estadística no demuestra por sí sola un deterioro del mercado laboral ni identifica sus causas: señala una variación que merece ser investigada.**
 
 - Las alertas son experimentales. Tras la validación se mantiene el umbral de 3, que en calma marca un 5,5 % de los meses: una alerta pide revisar el caso, no confirma nada.
-- La etiqueta local/regional también es experimental: depende de un segundo método (B) y no cambia el estado oficial de la alerta.
+- La etiqueta local/regional también es experimental: depende de un segundo método (B) y no cambia el estado oficial de la alerta. Es una etiqueta estadística: no identifica la causa de la subida.
+- La validación no tiene verdad de referencia: mide cuántas alertas da el detector y si detecta subidas sintéticas de un solo mes, no su acierto. No dice cómo responde a crisis graduales o prolongadas.
 - La referencia usa solo cinco cambios, así que su estimación es inestable. Con poca dispersión histórica, la puntuación puede ser alta aunque la subida sea de pocas personas. La puntuación no es una probabilidad ni una medida de gravedad.
 - Los meses con dispersión cero no se pueden evaluar. Se concentran en municipios con poco paro registrado.
 - El método compara el mismo mes de años anteriores, pero no modeliza la tendencia reciente.
 - El grupo con mayor aumento no indica una anomalía propia de ese grupo.
 - El paro total es la suma de los tres grupos de edad y está pendiente de contraste con los totales oficiales.
+- Se trabaja con la versión actual de los datos, no con la que existía en cada fecha.
 
 Las decisiones metodológicas y sus motivos están en [`docs/decisiones.md`](docs/decisiones.md).
 
@@ -324,7 +326,7 @@ El archivo no se incluye en GitHub.
 .\.venv\Scripts\python.exe .\src\comparar_metodos.py
 ```
 
-El primero mide el comportamiento del detector oficial sin modificarlo: alertas por mes, falsas alarmas en calma, episodio de 2020, potencia con subidas sintéticas, sensibilidad, municipios pequeños y persistencia. El segundo lo compara con tres métodos alternativos y clasifica cada alerta como local o regional. Escriben CSV y figuras en `resultados/validacion/`. Tardan alrededor de un minuto cada uno y necesitan `matplotlib` y, para una prueba, `statsmodels`, incluidos en `requirements-dev.txt`. Los resultados se explican en `docs/validacion.md` y, en una página, en `docs/metodologia.md`.
+El primero mide el comportamiento del detector oficial sin modificarlo: alertas por mes, tasa de alertas en calma, episodio de 2020, sensibilidad ante subidas sintéticas, efecto de la ventana y del umbral, municipios pequeños y persistencia. El segundo lo compara con tres métodos alternativos y clasifica cada alerta como local o regional. Escriben CSV y figuras en `resultados/validacion/`. Tardan alrededor de un minuto cada uno y necesitan `matplotlib` y, para una prueba, `statsmodels`, incluidos en `requirements-dev.txt`. Los resultados se explican en `docs/validacion.md` y, en una página, en `docs/metodologia.md`.
 
 #### 6. Publicar los datos de la aplicación
 

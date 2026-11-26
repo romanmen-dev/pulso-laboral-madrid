@@ -164,44 +164,77 @@ tales hasta que se adopten.
 - Constatación: la validación (`src/validar_detector.py`, `docs/validacion.md`)
   mide el comportamiento del detector sin verdad de referencia. Responde a la
   crisis de 2020: en abril saltó la alerta en el 67,5 % de los municipios
-  evaluables, frente al 5,5 % en los abriles de 2017-2019. Pero en calma
-  (2017-2019) marca el 5,51 % de los meses, frente al 0,135 % teórico, porque
-  la escala se estima con solo 5 cambios. Detecta el 30,3 % de las subidas
+  evaluables, frente al 5,5 % en los abriles de 2017-2019. En calma
+  (2017-2019) marca el 5,51 % de los meses. El 0,135 % de una normal con
+  parámetros conocidos no es la referencia de este detector, que estima la
+  escala con solo 5 cambios. En 2015-2019 detecta el 30,3 % de las subidas
   sintéticas del 5 % y el 55,4 % de las del 10 %, y apenas nada en los
   municipios pequeños: con la del 10 %, el 8,4 % en el 20 % con menos paro.
 - Decisión: **se mantiene el detector oficial**, con ventana de 5 años, mínimo
   de 5 cambios y umbral 3, sin cambios en `src/detectar_alertas.py` ni en
   `docs/contrato_alertas.md`.
-- Motivo: ninguno de los métodos alternativos de `src/comparar_metodos.py`
-  mejora a la vez las alertas en calma, la respuesta a 2020 y la potencia con
-  el umbral elegido fuera de muestra (en 2012-2016, para dar la tasa del
-  oficial en esos años, y evaluado en 2017-2019 y 2020):
+- Comparación con el umbral elegido fuera de muestra (en 2012-2016, para dar
+  la tasa del oficial en esos años, y evaluado en 2017-2019 y 2020; la
+  sensibilidad ante subidas sintéticas, en 2017-2019). El oficial no es el
+  mejor en todo:
   - C centrado: 5,62 % en calma frente a 5,51 %, 40,4 % de alertas en
-    marzo-junio de 2020 frente a 33,5 %, y potencia del 37,9 % frente a 32,4 %
-    (5 %) y del 63,2 % frente a 55,3 % (10 %). Detecta más, pero no reduce las
-    falsas alarmas.
-  - C: 4,15 % en calma, pero detecta menos las subidas del 1 % y del 2 %
-    (6,7 % frente a 8,9 %; 11,1 % frente a 13,9 %).
-  - Calibrar el umbral al 0,135 % deja la potencia por debajo del 4 % con
-    subidas del 5 %. A (Farrington) tiene menos potencia que el oficial en
+    marzo-junio de 2020 frente a 33,5 %, y sensibilidad del 37,9 % frente a
+    32,4 % (5 %) y del 63,2 % frente a 55,3 % (10 %). Detecta más, pero no
+    reduce las alertas en calma.
+  - C: mejora la tasa en calma (4,15 % frente a 5,51 %), la respuesta a 2020
+    (39,0 % frente a 33,5 % de marzo a junio) y las subidas del 5 % y del 10 %
+    (32,8 % y 63,6 % frente a 32,4 % y 55,3 %). Pero detecta menos las del 1 %
+    y el 2 % (6,7 % frente a 8,9 %; 11,1 % frente a 13,9 %) y mezcla
+    estacionalidades: junta cada mes con los contiguos.
+  - Calibrar el umbral al 0,135 % deja la sensibilidad por debajo del 4 % con
+    subidas del 5 %. A (Farrington) tiene menos sensibilidad que el oficial en
     todos los niveles comparados, y B no responde a 2020 (1,0 %).
+- Motivo: se mantiene el oficial por continuidad (es el detector del contrato
+  y de la aplicación), interpretabilidad («lo habitual» es la mediana del
+  mismo mes en 5 años) y prudencia (la evaluación fuera de muestra solo abarca
+  tres años de calma y un episodio, y las mejoras son pequeñas o mixtas), no
+  porque sea el mejor en todo.
 - Decisión: añadir a la aplicación una **etiqueta local/regional**, solo como
   contraste, sin cambiar el estado oficial de la alerta. Usa el método B:
   recta robusta (Theil-Sen) entre el cambio del municipio y el del resto de la
   Comunidad en los 60 meses anteriores. Es local si el residuo supera 3 escalas
-  robustas. De las 1.859 alertas oficiales, 145 son locales y 1.714
-  regionales; en octubre de 2026, 2 de 15 (Soto del Real y Alameda del Valle).
-  Motivo: B es el método más potente para subidas locales con las mismas
-  falsas alarmas, pero no ve los choques regionales, así que complementa al
-  oficial y no lo sustituye.
+  robustas: la subida destaca también frente al resto de la Comunidad. Si no,
+  es regional: es compatible con la evolución del resto de la Comunidad. Son
+  etiquetas estadísticas, no causas. De las 1.859 alertas oficiales, 145 son
+  locales y 1.714 regionales; en octubre de 2026, 2 de 15 (Soto del Real y
+  Alameda del Valle). Motivo: B es el método más sensible a subidas sintéticas
+  locales con la misma tasa en calma, pero no ve los choques regionales, así
+  que complementa al oficial y no lo sustituye.
 - Propuesta (pendiente): **versión 2 con C centrado**. Usa la referencia del
   oficial y estima la escala con 15 cambios (el mismo mes y los contiguos,
   centrados en la mediana de su mes), con el umbral elegido fuera de muestra
   (2,59). Antes de adoptarla hay que repetir la evaluación con más años y
-  decidir qué se prioriza: más sensibilidad con las mismas falsas alarmas (C
-  centrado) o menos falsas alarmas (C).
+  decidir qué se prioriza: más sensibilidad con la misma tasa en calma (C
+  centrado) o menos alertas en calma (C).
 - La aplicación muestra la validación en la pestaña «¿Cómo sabemos que
   funciona?», que solo lee los CSV publicados. La ficha indica en el detalle
   técnico qué diría cada método alternativo ese mes. `src/publicar_datos.py`
   publica esos resultados con sus huellas en `publicacion.json`. El método,
   en una página, está en `docs/metodologia.md`.
+
+### 26/11/2026 — Lenguaje de la validación
+
+- Decisión: en la documentación y en la aplicación no se habla de «falsas
+  alarmas» ni de «potencia». Se usa «tasa de alertas en calma» (o «alertas en
+  un periodo de referencia estable») y «sensibilidad ante subidas
+  sintéticas». Los nombres de archivos y columnas (`potencia.csv`,
+  `potencia_*`) no cambian.
+- Motivo: no hay anomalías municipales verificadas, así que no se puede saber
+  cuántas alertas de 2017-2019 son falsas. Y las subidas sintéticas son saltos
+  de un solo mes sumados a cambios reales, que pueden ser negativos: no miden
+  la respuesta a crisis graduales ni prolongadas.
+- El 0,135 % se presenta como la referencia de una normal con media y escala
+  conocidas, no como la tasa que debería dar el detector, que estima las dos
+  con solo 5 cambios.
+- Las etiquetas local y regional se describen como estadísticas: «regional»,
+  compatible con la evolución del resto de la Comunidad (método B); «local»,
+  destaca también frente al resto de la Comunidad. No indican causas.
+- Las cifras del oficial llevan siempre su periodo: sensibilidad de 2015-2019
+  en la validación (30,3 % y 55,4 % con subidas del 5 % y del 10 %) y de
+  2017-2019 en la comparación fuera de muestra (32,4 % y 55,3 %).
+- No cambia ningún cálculo ni ningún resultado.

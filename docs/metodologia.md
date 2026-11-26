@@ -50,19 +50,26 @@ medir el acierto. Se mide el comportamiento del detector, de febrero de 2010 a
 octubre de 2026 (`src/validar_detector.py`, [`validacion.md`](validacion.md)):
 
 - **Frecuencia:** 1.859 alertas en 33.739 municipio-mes evaluables, el 5,51 %.
-- **Calma (2017-2019):** 5,51 % de alertas, frente al 0,135 % que se esperaría
-  con datos normales y una referencia exacta, P(Z > 3). La causa es estimar la
-  escala con solo 5 cambios: aun con datos normales, la simulación da un 7,58 %
-  de puntuaciones mayores que 3.
+- **Alertas en calma (2017-2019):** el 5,51 % de los meses evaluables. Sin
+  anomalías verificadas no se puede saber cuántas de esas alertas son falsas,
+  así que se habla de tasa de alertas en un periodo de referencia estable, no
+  de falsas alarmas. El 0,135 %, P(Z > 3), es la referencia de una normal con
+  media y escala conocidas, no la tasa que debería dar este detector: al
+  estimar la escala con solo 5 cambios, incluso con datos normales la
+  simulación da un 7,58 % de puntuaciones mayores que 3.
 - **Crisis de 2020:** en abril de 2020 saltó la alerta en el 67,5 % de los
   municipios evaluables (114 de 169), frente al 5,5 % en los abriles de
   2017-2019.
-- **Potencia:** sumando a mano una subida al cambio de un mes de 2015-2019,
-  se detecta el 30,3 % de las subidas del 5 % y el 55,4 % de las del 10 %. Con
+- **Sensibilidad ante subidas sintéticas (2015-2019):** se suma a mano una
+  subida al cambio real de un mes, que puede ser negativo, y se mira si salta
+  la alerta. Se detecta el 30,3 % de las subidas del 5 % y el 55,4 % de las del
+  10 % (el 27,0 % y el 53,2 % contando solo los meses sin alerta previa). Con
   la del 10 %, el 94,8 % en el 20 % de municipios con más paro y el 8,4 % en el
-  20 % con menos.
+  20 % con menos. Son saltos puntuales de un mes, no crisis graduales ni
+  prolongadas.
 - **Persistencia:** fuera de marzo-junio de 2020, solo el 4,1 % de las alertas
-  se repite el mes siguiente, menos que la tasa base del 5,1 %.
+  se repite el mes siguiente, menos que la tasa base del 5,1 %. En toda la
+  serie, 2020 incluido, el 92,2 % de las rachas de alertas dura un solo mes.
 
 ## 4. Comparación con otros métodos
 
@@ -79,20 +86,30 @@ alternativas ([`validacion.md`](validacion.md#comparación-con-métodos-alternat
 Resultados:
 
 - **Calibrar el umbral al 0,135 % no compensa:** los métodos calibrados se
-  quedan casi sin potencia.
+  quedan casi sin sensibilidad.
 - **Con las mismas alertas en calma, C y C centrado detectan más que el
   oficial.**
 - **Con el umbral elegido fuera de muestra** (en 2012-2016, para dar la tasa
-  del oficial en esos años, y evaluado en 2017-2019 y 2020):
+  del oficial en esos años, y evaluado en 2017-2019 y 2020; la sensibilidad,
+  en 2017-2019):
   - C centrado da casi las mismas alertas en calma (5,62 % frente a 5,51 %).
     Responde más en 2020 (40,4 % frente a 33,5 % de marzo a junio) y detecta
-    más subidas (37,9 % frente a 32,4 % con el 5 %; 63,2 % frente a 55,3 % con
-    el 10 %).
-  - C da menos alertas en calma (4,15 %), pero detecta menos las subidas del
-    1 % y el 2 %.
+    más subidas sintéticas (37,9 % frente a 32,4 % con el 5 %; 63,2 % frente a
+    55,3 % con el 10 %).
+  - C da menos alertas en calma (4,15 % frente a 5,51 %), responde más en 2020
+    (39,0 % frente a 33,5 %) y detecta algo más las subidas del 5 % (32,8 %
+    frente a 32,4 %) y bastante más las del 10 % (63,6 % frente a 55,3 %).
+    Pero detecta menos las del 1 % y el 2 % (6,7 % y 11,1 % frente a 8,9 % y
+    13,9 %), y mezcla estacionalidades: junta cada mes con los contiguos. En
+    Madrid, los noviembres de 2021 a 2025, que bajaron todos, rebajan lo
+    habitual de octubre de +61 a −1.112.
 
-Ninguno mejora las tres cosas a la vez, así que **se mantiene el detector
-oficial**. C centrado es la propuesta para una versión 2, pendiente de
+El oficial no es el mejor en todo, pero **se mantiene** por continuidad (es el
+detector del contrato y de la aplicación), interpretabilidad («lo habitual» es
+la mediana del mismo mes) y prudencia (la evaluación fuera de muestra solo
+abarca tres años de calma y un episodio, y las mejoras son pequeñas o
+mixtas). C centrado es la propuesta para una versión 2, y C, la alternativa
+si se prioriza reducir las alertas en calma. Las dos están pendientes de
 confirmarse con más años.
 
 ## 5. Etiqueta local o regional
@@ -104,10 +121,12 @@ Cada alerta oficial lleva una etiqueta de contraste, calculada con el método B:
    recta robusta de Theil-Sen.
 2. Su dispersión es 1,4826 × MAD de los residuos.
 3. Si este mes la subida supera lo que predice esa recta en más de 3 veces la
-   dispersión, la alerta es **local**: el paro sube más que en el resto. Si
-   no, es **regional**: sube en línea con el conjunto de la Comunidad.
+   dispersión, la alerta es **local**: destaca también frente al resto de la
+   Comunidad. Si no, es **regional**: es compatible con la evolución del resto
+   de la Comunidad.
 
-El estado oficial no cambia. De las 1.859 alertas oficiales, 145 son locales y
+Son etiquetas estadísticas, no causas: no dicen por qué sube el paro. El
+estado oficial no cambia. De las 1.859 alertas oficiales, 145 son locales y
 1.714 regionales. En octubre de 2026, 2 de 15 son locales: Soto del Real y
 Alameda del Valle. La de Madrid es regional: con lo que subió el resto de la
 Comunidad (+1.941), B esperaba una subida de unas 1.831 personas.
@@ -115,9 +134,11 @@ Comunidad (+1.941), B esperaba una subida de unas 1.831 personas.
 ## 6. Limitaciones
 
 - **Sin verdad de referencia:** se mide cuántas alertas da el detector y si
-  detecta subidas añadidas a mano, no su acierto.
-- **Alertas en calma:** un 5,5 %, muy por encima del 0,135 % nominal. Una
-  alerta pide revisar el caso; no demuestra un deterioro ni explica su causa.
+  detecta subidas añadidas a mano, no su acierto ni cuántas alertas son falsas.
+- **Alertas en calma:** un 5,5 % de los meses de 2017-2019. Una alerta pide
+  revisar el caso; no demuestra un deterioro ni explica su causa.
+- **Subidas sintéticas puntuales:** la sensibilidad se mide con saltos de un
+  solo mes; no dice cómo responde a crisis graduales o prolongadas.
 - **Municipios pequeños:** con pocas personas en paro, muchos meses no se
   pueden evaluar y las subidas relativas apenas se detectan.
 - **Pocos datos:** la serie empieza en 2005, así que el primer mes evaluable es
@@ -126,8 +147,10 @@ Comunidad (+1.941), B esperaba una subida de unas 1.831 personas.
 - **Recuentos, no tasas:** el paro registrado se cuenta en personas, sin
   población de referencia.
 - **Sin tendencia:** el método no modeliza la tendencia reciente.
-- **Datos actuales:** se usa la versión de hoy, no la que se publicó cada mes.
+- **Versión actual de los datos:** se trabaja con la versión actual, no con la
+  que existía en cada fecha.
 - **Paro total sin contrastar:** es la suma de los tres grupos de edad y está
   pendiente de contraste con los totales oficiales.
 - **La etiqueta también es experimental:** depende del método B, que asume una
-  relación estable con el resto de la Comunidad.
+  relación estable con el resto de la Comunidad, y es estadística: no
+  identifica causas.

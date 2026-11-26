@@ -89,9 +89,10 @@ ANCHOS = {
 
 AYUDAS = {
     "tipo": (
-        "Local: el paro sube más que en el resto de la Comunidad. Regional: sube "
-        "en línea con el conjunto de la Comunidad. Es una etiqueta de contraste "
-        "(método B): no cambia la alerta."
+        "Local: la subida destaca también frente al resto de la Comunidad. "
+        "Regional: es compatible con la evolución del resto de la Comunidad. "
+        "Etiqueta estadística de contraste (método B): no indica la causa ni "
+        "cambia la alerta."
     ),
     "cambio_mensual": "Cambio del paro registrado respecto al mes anterior, en personas.",
     "referencia_cambio": (
@@ -460,8 +461,8 @@ def ficha(alertas, fecha, municipio, paro_edad, contratos, paleta, clasificacion
         st.warning(texto + (f"\n\n{frase_tipo}" if frase_tipo else ""), icon=":material/notification_important:")
         if frase_tipo:
             st.caption(
-                "La etiqueta local o regional es información de contraste: no cambia el "
-                "estado oficial de la alerta.",
+                "La etiqueta local o regional es estadística y de contraste: no indica la "
+                "causa de la subida ni cambia el estado oficial de la alerta.",
                 help=datos.AYUDA_TIPO,
             )
     elif tipo == "sin_alerta":
@@ -584,7 +585,9 @@ def como_sabemos_que_funciona(v, paleta):
         "No hay una lista de subidas anómalas confirmadas con la que medir el acierto "
         "del detector. Por eso se ha comprobado de tres maneras: cuántas alertas da en "
         "años tranquilos, si reacciona a una crisis conocida y si detecta subidas "
-        "añadidas a mano. Cada mes se compara solo con meses anteriores. El método está en "
+        "añadidas a mano. Sin anomalías verificadas no se puede saber cuántas alertas de "
+        "los años tranquilos son falsas, así que se habla de **tasa de alertas en calma**, "
+        "no de falsas alarmas. Cada mes se compara solo con meses anteriores. El método está en "
         f"[docs/metodologia.md]({validacion.URL_METODOLOGIA}) y los resultados completos, en "
         f"[docs/validacion.md]({validacion.URL_VALIDACION})."
     )
@@ -608,11 +611,14 @@ def como_sabemos_que_funciona(v, paleta):
 
     st.markdown("#### ¿Detecta una subida de golpe?")
     st.markdown(
-        "Se suma a mano al cambio de un mes una subida del 1 %, 2 %, 5 % o 10 % del "
-        "paro del mes anterior, en los meses de 2015 a 2019, y se mira si el detector "
-        "la marca. Como solo cambia ese mes, lo habitual y el límite no cambian."
+        "**Sensibilidad ante subidas sintéticas.** En cada mes evaluable de 2015 a 2019 se "
+        "suma a mano una subida del 1 %, 2 %, 5 % o 10 % del paro del mes anterior al "
+        "cambio real de ese mes, que puede ser negativo, y se mira si el detector la "
+        "marca. Son saltos puntuales de un solo mes: no reproducen crisis graduales ni "
+        "prolongadas. Como solo cambia ese mes, lo habitual y el límite no cambian."
     )
     grafico(graficos.figura_potencia_tamano(validacion.potencia_por_tamano(potencia), validacion.NOMBRES_QUINTIL, paleta))
+    st.markdown(validacion.frase_sin_alerta_previa(potencia))
     st.caption(
         "Quintiles de los 179 municipios por su paro medio de 2019. Con una subida del "
         "0 % se ve la tasa de alertas sin subida añadida."
@@ -640,7 +646,7 @@ def como_sabemos_que_funciona(v, paleta):
     st.caption(
         "Puntos: cada método con su umbral. C y C centrado, con el umbral elegido en "
         "2012-2016 para dar las mismas alertas que el oficial en esos años. Alertas en "
-        "calma y subidas detectadas, en 2017-2019."
+        "calma y subidas sintéticas detectadas, en 2017-2019."
     )
 
     st.markdown("#### Limitaciones medidas")
