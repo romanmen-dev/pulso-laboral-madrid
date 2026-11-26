@@ -158,3 +158,50 @@ tales hasta que se adopten.
   de los gráficos del paro ya no incluye los contratos: tienen su propia
   tabla en la sección.
 - Los contratos siguen sin intervenir en el detector.
+
+### 26/11/2026 — Validación: se mantiene el detector oficial y se añade la etiqueta local/regional
+
+- Constatación: la validación (`src/validar_detector.py`, `docs/validacion.md`)
+  mide el comportamiento del detector sin verdad de referencia. Responde a la
+  crisis de 2020: en abril saltó la alerta en el 67,5 % de los municipios
+  evaluables, frente al 5,5 % en los abriles de 2017-2019. Pero en calma
+  (2017-2019) marca el 5,51 % de los meses, frente al 0,135 % teórico, porque
+  la escala se estima con solo 5 cambios. Detecta el 30,3 % de las subidas
+  sintéticas del 5 % y el 55,4 % de las del 10 %, y apenas nada en los
+  municipios pequeños: con la del 10 %, el 8,4 % en el 20 % con menos paro.
+- Decisión: **se mantiene el detector oficial**, con ventana de 5 años, mínimo
+  de 5 cambios y umbral 3, sin cambios en `src/detectar_alertas.py` ni en
+  `docs/contrato_alertas.md`.
+- Motivo: ninguno de los métodos alternativos de `src/comparar_metodos.py`
+  mejora a la vez las alertas en calma, la respuesta a 2020 y la potencia con
+  el umbral elegido fuera de muestra (en 2012-2016, para dar la tasa del
+  oficial en esos años, y evaluado en 2017-2019 y 2020):
+  - C centrado: 5,62 % en calma frente a 5,51 %, 40,4 % de alertas en
+    marzo-junio de 2020 frente a 33,5 %, y potencia del 37,9 % frente a 32,4 %
+    (5 %) y del 63,2 % frente a 55,3 % (10 %). Detecta más, pero no reduce las
+    falsas alarmas.
+  - C: 4,15 % en calma, pero detecta menos las subidas del 1 % y del 2 %
+    (6,7 % frente a 8,9 %; 11,1 % frente a 13,9 %).
+  - Calibrar el umbral al 0,135 % deja la potencia por debajo del 4 % con
+    subidas del 5 %. A (Farrington) tiene menos potencia que el oficial en
+    todos los niveles comparados, y B no responde a 2020 (1,0 %).
+- Decisión: añadir a la aplicación una **etiqueta local/regional**, solo como
+  contraste, sin cambiar el estado oficial de la alerta. Usa el método B:
+  recta robusta (Theil-Sen) entre el cambio del municipio y el del resto de la
+  Comunidad en los 60 meses anteriores. Es local si el residuo supera 3 escalas
+  robustas. De las 1.859 alertas oficiales, 145 son locales y 1.714
+  regionales; en octubre de 2026, 2 de 15 (Soto del Real y Alameda del Valle).
+  Motivo: B es el método más potente para subidas locales con las mismas
+  falsas alarmas, pero no ve los choques regionales, así que complementa al
+  oficial y no lo sustituye.
+- Propuesta (pendiente): **versión 2 con C centrado**. Usa la referencia del
+  oficial y estima la escala con 15 cambios (el mismo mes y los contiguos,
+  centrados en la mediana de su mes), con el umbral elegido fuera de muestra
+  (2,59). Antes de adoptarla hay que repetir la evaluación con más años y
+  decidir qué se prioriza: más sensibilidad con las mismas falsas alarmas (C
+  centrado) o menos falsas alarmas (C).
+- La aplicación muestra la validación en la pestaña «¿Cómo sabemos que
+  funciona?», que solo lee los CSV publicados. La ficha indica en el detalle
+  técnico qué diría cada método alternativo ese mes. `src/publicar_datos.py`
+  publica esos resultados con sus huellas en `publicacion.json`. El método,
+  en una página, está en `docs/metodologia.md`.

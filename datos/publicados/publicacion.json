@@ -1,9 +1,9 @@
 {
-  "generado": "2026-11-20T13:54:06+01:00",
+  "generado": "2026-11-26T10:54:33+01:00",
   "datos_desde": "2005-01",
   "datos_hasta": "2026-10",
-  "commit": "8eca4b365941cb76db9aafa39b1308a061fee969",
-  "cadena_con_cambios_sin_commit": false,
+  "commit": "e3b41cd0138d8b80c33e9e30694c1c4ffcd1673c",
+  "cadena_con_cambios_sin_commit": true,
   "atribucion": {
     "fuente": "Comunidad de Madrid. Portal de Datos Abiertos (datos.comunidad.madrid). Fuente de los datos: D. G. del Servicio Público de Empleo. Límites municipales: Información geográfica de la Comunidad de Madrid (Geoportal IDEM).",
     "licencia": "CC BY 4.0",
@@ -64,6 +64,48 @@
       "bytes": 282040,
       "filas": 179,
       "sha256": "62356bf3dfba35900c23a7e38a1e731adeeb70bb85eedb368177ac796c45befa"
+    },
+    {
+      "archivo": "validacion_mensual.csv",
+      "origen": "resultados/validacion/validacion_mensual.csv",
+      "bytes": 9931,
+      "filas": 201,
+      "sha256": "a7669df0280aa0313c97ae4755d91b7433bb31a9d848ee22cdd097c7d4bf6b41"
+    },
+    {
+      "archivo": "potencia.csv",
+      "origen": "resultados/validacion/potencia.csv",
+      "bytes": 2454,
+      "filas": 30,
+      "sha256": "5004365c8ecebadfc3e5c7498540e52baeedda4d984c3140f2f20ebc2d9e3f74"
+    },
+    {
+      "archivo": "resumen_metodos.csv",
+      "origen": "resultados/validacion/resumen_metodos.csv",
+      "bytes": 10629,
+      "filas": 8,
+      "sha256": "4363aaf7ee8daae9f7fcd796ddf42c165914447a3a5236e73a541c27829b1cd6"
+    },
+    {
+      "archivo": "curvas_metodos.csv",
+      "origen": "resultados/validacion/curvas_metodos.csv",
+      "bytes": 169011,
+      "filas": 1455,
+      "sha256": "bbc66a8364dde8a73db0bbeea330371202094bbf5f74f15ae325c02a6f68ff99"
+    },
+    {
+      "archivo": "clasificacion_local_regional.csv",
+      "origen": "resultados/validacion/clasificacion_local_regional.csv",
+      "bytes": 192542,
+      "filas": 1859,
+      "sha256": "5a9d620d5edaff6e884c3a9074ca44acbf59ac0a13871ac1a9ab80db1f0bb613"
+    },
+    {
+      "archivo": "otros_metodos.csv",
+      "origen": "resultados/validacion/otros_metodos.csv",
+      "bytes": 1632942,
+      "filas": 46898,
+      "sha256": "9634ff88009280e1f8f36ce92253be7b91076d124f960663c5dab7684b6ed070"
     }
   ]
 }

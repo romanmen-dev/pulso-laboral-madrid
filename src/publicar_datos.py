@@ -5,8 +5,9 @@ detección: la aplicación publicada lee esta copia. Junto a ella se escribe
 publicacion.json, que identifica de dónde sale: fecha de generación, último
 mes de datos, commit y huellas SHA-256 de los originales y de cada archivo.
 
-Se detiene si alertas.csv es anterior a los datos procesados o si los
-originales no son la versión revisada que fija src/descargar_datos.py.
+Se detiene si alertas.csv es anterior a los datos procesados, si los
+resultados de la validación son anteriores a alertas.csv o si los originales
+no son la versión revisada que fija src/descargar_datos.py.
 """
 
 import hashlib
@@ -32,7 +33,20 @@ PROCESADOS = [
     RAIZ / "datos" / "procesados" / "contratos_mensuales.csv",
 ]
 MAPA = RAIZ / "datos" / "procesados" / "municipios_mapa.geojson"
-ARCHIVOS = [ALERTAS, *PROCESADOS, MAPA]
+
+# Resultados de la validación que muestra la aplicación: pestaña «¿Cómo
+# sabemos que funciona?», etiqueta local/regional y otros métodos de la ficha
+# (src/validar_detector.py, src/comparar_metodos.py y docs/validacion.md).
+VALIDACION = RAIZ / "resultados" / "validacion"
+ARCHIVOS_VALIDACION = [
+    VALIDACION / "validacion_mensual.csv",
+    VALIDACION / "potencia.csv",
+    VALIDACION / "resumen_metodos.csv",
+    VALIDACION / "curvas_metodos.csv",
+    VALIDACION / "clasificacion_local_regional.csv",
+    VALIDACION / "otros_metodos.csv",
+]
+ARCHIVOS = [ALERTAS, *PROCESADOS, MAPA, *ARCHIVOS_VALIDACION]
 
 # Scripts que generan los datos. Si tienen cambios sin commit, el commit
 # anotado en publicacion.json no basta para reproducir la copia.
@@ -42,6 +56,8 @@ CADENA = [
     "src/preparar_datos.py",
     "src/detectar_alertas.py",
     "src/preparar_mapa.py",
+    "src/validar_detector.py",
+    "src/comparar_metodos.py",
 ]
 
 # Atribución exigida por la licencia CC BY 4.0 de los datos del portal
@@ -100,7 +116,8 @@ def comprobar_entradas():
         raise FileNotFoundError(
             "Faltan archivos: "
             + ", ".join(str(r.relative_to(RAIZ)) for r in faltan)
-            + ". Ejecuta antes preparar_datos.py y detectar_alertas.py."
+            + ". Ejecuta antes preparar_datos.py, detectar_alertas.py, "
+            "validar_detector.py y comparar_metodos.py."
         )
 
     recientes = [r for r in PROCESADOS if r.stat().st_mtime > ALERTAS.stat().st_mtime]
@@ -109,6 +126,14 @@ def comprobar_entradas():
             "resultados/alertas.csv es anterior a "
             + ", ".join(r.name for r in recientes)
             + ". Ejecuta de nuevo src/detectar_alertas.py antes de publicar."
+        )
+
+    antiguos = [r for r in ARCHIVOS_VALIDACION if r.stat().st_mtime < ALERTAS.stat().st_mtime]
+    if antiguos:
+        raise ValueError(
+            ", ".join(r.name for r in antiguos)
+            + " es anterior a resultados/alertas.csv. Ejecuta de nuevo "
+            "src/validar_detector.py y src/comparar_metodos.py antes de publicar."
         )
 
 

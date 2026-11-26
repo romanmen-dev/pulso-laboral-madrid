@@ -8,8 +8,14 @@ Métodos (docs/validacion.md, «Comparación con métodos alternativos»):
 - C: robusto ampliado y calibrado. Misma regla con los cambios del mismo mes y
   de los meses contiguos (±1) en los 5 años anteriores, hasta 15 cambios, y el
   umbral calibrado para cada número de cambios.
+- Cc: C centrado. Referencia: la mediana del propio mes, como el oficial.
+  Escala: los 15 cambios centrados cada uno en la mediana de su mes
+  calendario, para no mezclar estacionalidades. Umbral calibrado.
 - A: quasi-Poisson tipo Farrington sobre el nivel de paro.
 - B: anomalía local. Cambio del municipio frente al del resto de la Comunidad.
+- C_fm y Cc_fm: C y Cc con el umbral elegido fuera de muestra, en 2012-2016,
+  para dar la misma tasa de alertas que el oficial con umbral 3 en esos años.
+  Se evalúan en 2017-2019 y en 2020.
 
 Reutiliza el banco de pruebas de src/validar_detector.py (lectura, quintiles y
 subidas sintéticas) y escribe en resultados/validacion/. No modifica el
@@ -23,7 +29,7 @@ mes, que se publica a la vez que el del municipio.
 import math
 import time
 import warnings
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Callable
 
 import numpy as np
@@ -54,11 +60,20 @@ Z_FARRINGTON = 3.0
 MESES_B = 60
 UMBRAL_B = 3.0
 
+# Umbral fuera de muestra: se elige en 2012-2016 y se evalúa en 2017-2019 y
+# en 2020.
+ANOS_SELECCION = [2012, 2013, 2014, 2015, 2016]
+
+# Potencia: 2015-2019 (como en la validación) y 2017-2019 (evaluación fuera
+# de muestra, sin los años con los que se elige el umbral).
+PERIODOS_INYECCION = {"2015-2019": "inyeccion", "2017-2019": "inyeccion_2017_2019"}
+
 MUNICIPIO_CASO = "Madrid"
 FECHA_CASO = pd.Timestamp("2026-10-01")
 FECHA_CLASIFICACION = pd.Timestamp("2026-10-01")
 
 AMARILLO = "#eda100"
+MAGENTA = "#e87ba4"
 
 
 @dataclass
@@ -165,6 +180,40 @@ def calibrar_umbral(n, probabilidad=P_OBJETIVO, repeticiones=REPETICIONES_CALIBR
     return float(np.quantile(puntuaciones, 1 - probabilidad))
 
 
+def referencia_y_escala_centradas(historicos):
+    """Referencia y escala de C centrado.
+
+    `historicos` tiene forma (..., 5 años, 3 meses), con los meses en el orden
+    de DESFASES_ANUALES: siguiente, mismo y anterior al evaluado. Cada cambio se
+    centra en la mediana de su mes calendario. La referencia es la mediana del
+    mismo mes (la del oficial) y la escala, 1,4826 × MAD de los 15 residuos.
+    """
+    mediana_mes = np.median(historicos, axis=-2)
+    residuos = historicos - mediana_mes[..., None, :]
+    residuos = residuos.reshape(*residuos.shape[:-2], -1)
+    mad = np.median(np.abs(residuos - np.median(residuos, axis=-1, keepdims=True)), axis=-1)
+    return mediana_mes[..., 1], detector.FACTOR_ESCALA * mad
+
+
+def simular_puntuaciones_centrado(repeticiones, semilla):
+    """Puntuaciones de C centrado con datos normales: 3 meses × 5 años y un
+    cambio nuevo del mismo mes. La media de cada mes no influye (se centra)."""
+    bloques = []
+    for i, inicio in enumerate(range(0, repeticiones, BLOQUE_SIMULACION)):
+        tamano = min(BLOQUE_SIMULACION, repeticiones - inicio)
+        rng = np.random.default_rng([semilla, 0, i])
+        historicos = rng.standard_normal((tamano, 5, 3))
+        nuevo = rng.standard_normal(tamano)
+        referencia, escala = referencia_y_escala_centradas(historicos)
+        bloques.append((nuevo - referencia) / escala)
+    return np.concatenate(bloques)
+
+
+def calibrar_umbral_centrado(probabilidad=P_OBJETIVO, repeticiones=REPETICIONES_CALIBRADO, semilla=val.SEMILLA):
+    puntuaciones = simular_puntuaciones_centrado(repeticiones, semilla)
+    return float(np.quantile(puntuaciones, 1 - probabilidad))
+
+
 def tabla_umbrales_calibrados(valores_n=range(MIN_CAMBIOS_C, len(DESFASES_ANUALES) + 1)):
     filas = []
     for n in valores_n:
@@ -173,6 +222,7 @@ def tabla_umbrales_calibrados(valores_n=range(MIN_CAMBIOS_C, len(DESFASES_ANUALE
         comprobacion = simular_puntuaciones(n, REPETICIONES_COMPROBACION, semilla=val.SEMILLA + 1)
         filas.append(
             {
+                "metodo": "C",
                 "n_cambios": n,
                 "umbral_calibrado": umbral,
                 "pct_simulado_con_umbral_3": 100 * float(np.mean(comprobacion > 3)),
@@ -180,6 +230,19 @@ def tabla_umbrales_calibrados(valores_n=range(MIN_CAMBIOS_C, len(DESFASES_ANUALE
                 "pct_objetivo": 100 * P_OBJETIVO,
             }
         )
+
+    umbral = calibrar_umbral_centrado()
+    comprobacion = simular_puntuaciones_centrado(REPETICIONES_COMPROBACION, semilla=val.SEMILLA + 1)
+    filas.append(
+        {
+            "metodo": "Cc",
+            "n_cambios": len(DESFASES_ANUALES),
+            "umbral_calibrado": umbral,
+            "pct_simulado_con_umbral_3": 100 * float(np.mean(comprobacion > 3)),
+            "pct_simulado_con_umbral_calibrado": 100 * float(np.mean(comprobacion > umbral)),
+            "pct_objetivo": 100 * P_OBJETIVO,
+        }
+    )
     return pd.DataFrame(filas)
 
 
@@ -194,6 +257,8 @@ def metodo_oficial(alertas, umbral=None, clave="oficial", nombre="Oficial: 5 cam
         evaluacion=alertas["estado_detector"].where(
             ~alertas["estado_detector"].isin(val.EVALUABLES), EVALUABLE
         ),
+        referencia_cambio=alertas["referencia_cambio"].astype(float),
+        escala_robusta=alertas["escala_robusta"].astype(float),
     )
     referencia = alertas["referencia_cambio"].to_numpy(dtype=float)
     escala = alertas["escala_robusta"].to_numpy(dtype=float)
@@ -252,6 +317,84 @@ def metodo_c(paro, umbrales_n):
         limite=lambda u: referencia + np.asarray(u) * escala_plana,
         segundos=time.perf_counter() - inicio,
     )
+
+
+# C centrado -----------------------------------------------------------------
+
+def metodo_c_centrado(paro, umbral):
+    """C sin mezclar estacionalidades.
+
+    Usa los mismos 15 cambios que C (mismo mes y contiguos de los 5 años
+    anteriores), pero centra cada uno en la mediana de su mes calendario dentro
+    de la ventana. La referencia es la mediana del mismo mes, como en el
+    oficial; la escala, 1,4826 × MAD de los 15 residuos. Exige los 15 cambios.
+    """
+    inicio = time.perf_counter()
+    claves, niveles, cambios = a_matrices(paro)
+    historicos = ventanas(cambios, DESFASES_ANUALES)
+    forma = niveles.shape
+    completo = ~np.isnan(historicos).any(axis=2)
+
+    referencia, escala = referencia_y_escala_centradas(historicos.reshape(*forma, 5, 3))
+
+    evaluacion = np.where(
+        ~completo | np.isnan(cambios),
+        "historial_insuficiente",
+        np.where(escala > 0, EVALUABLE, "dispersion_cero"),
+    )
+
+    tabla = tabla_base(claves, niveles, cambios).assign(
+        evaluacion=evaluacion.ravel(),
+        referencia_cambio=np.where(completo, referencia, np.nan).ravel(),
+        escala_robusta=np.where(completo, escala, np.nan).ravel(),
+    )
+    referencia_plana = tabla["referencia_cambio"].to_numpy()
+    escala_plana = tabla["escala_robusta"].to_numpy()
+    return Resultado(
+        clave="Cc",
+        nombre="Cc. C centrado en la mediana de cada mes, umbral calibrado",
+        tabla=tabla,
+        umbral=umbral,
+        limite=lambda u: referencia_plana + np.asarray(u) * escala_plana,
+        segundos=time.perf_counter() - inicio,
+    )
+
+
+# Umbral fuera de muestra ----------------------------------------------------
+
+def tasa_alertas(resultado, anos, umbral=None):
+    """% de alertas entre los meses evaluables de esos años."""
+    filtro = resultado.tabla["fecha"].dt.year.isin(anos).to_numpy() & es_evaluable(resultado)
+    alerta = alertas_metodo(resultado, 0, umbral).fillna(False).to_numpy(dtype=bool)
+    return val.porcentaje((filtro & alerta).sum(), filtro.sum()), int(filtro.sum()), int((filtro & alerta).sum())
+
+
+def umbral_fuera_de_muestra(resultado, tasa_objetivo_pct, anos=ANOS_SELECCION):
+    """Umbral con el que el método da, en `anos`, la mayor tasa de alertas que
+    no pasa de la tasa objetivo. Usa solo los meses de esos años.
+
+    Para métodos con referencia y escala (oficial, C, Cc): hay alerta si el
+    paro sube y la puntuación (cambio − referencia) / escala supera el umbral.
+    Con k = ⌊objetivo · N⌋, el umbral es el punto medio entre la k-ésima y la
+    (k+1)-ésima puntuación más alta, para no quedar justo en un valor observado.
+    """
+    tabla = resultado.tabla
+    seleccion = tabla["fecha"].dt.year.isin(anos).to_numpy() & es_evaluable(resultado)
+    cambio = tabla["cambio_mensual"].to_numpy(dtype=float)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        puntuacion = (cambio - tabla["referencia_cambio"].to_numpy(dtype=float)) / tabla["escala_robusta"].to_numpy(
+            dtype=float
+        )
+    efectiva = np.sort(np.where(cambio > 0, puntuacion, -np.inf)[seleccion])[::-1]
+    k = int(np.floor(tasa_objetivo_pct / 100 * len(efectiva) + 1e-9))
+    if k == 0:
+        return float(efectiva[0]) + 1.0
+    return float((efectiva[k - 1] + efectiva[k]) / 2)
+
+
+def con_umbral_fuera_de_muestra(resultado, tasa_objetivo_pct, clave, nombre, anos=ANOS_SELECCION):
+    umbral = umbral_fuera_de_muestra(resultado, tasa_objetivo_pct, anos)
+    return replace(resultado, clave=clave, nombre=nombre, umbral=umbral)
 
 
 # A. Quasi-Poisson tipo Farrington -------------------------------------------
@@ -446,31 +589,49 @@ def mascaras_periodos(tabla):
         "mar_jun_2020": (ano.eq(val.ANO_EPISODIO) & mes.isin(val.MESES_EPISODIO)).to_numpy(),
         "abril_2020": (ano.eq(val.ANO_EPISODIO) & mes.eq(4)).to_numpy(),
         "inyeccion": ano.isin(val.ANOS_INYECCION).to_numpy(),
+        "inyeccion_2017_2019": ano.isin(val.ANOS_CALMA).to_numpy(),
         "historico": tabla["fecha"].ge(val.INICIO).to_numpy(),
     }
 
 
+def sufijo_periodo(periodo):
+    return "" if periodo == "2015-2019" else "_" + periodo.replace("-", "_")
+
+
 def deteccion_con_subidas(resultado, quintil_fila, umbral=None, subidas=val.SUBIDAS):
-    """Tasa de detección de cada subida en los meses evaluables de 2015-2019."""
+    """Tasa de detección de cada subida en los meses evaluables de 2015-2019 y
+    de 2017-2019."""
     tabla = resultado.tabla
-    seleccion = mascaras_periodos(tabla)["inyeccion"] & es_evaluable(resultado)
+    mascaras = mascaras_periodos(tabla)
+    evaluable = es_evaluable(resultado)
     filas = []
     for proporcion in subidas:
         subida = val.subida_en_personas(tabla["paro_mes_anterior"], proporcion).fillna(0).to_numpy()
         detectado = alertas_metodo(resultado, subida, umbral).fillna(False).to_numpy(dtype=bool)
-        for nombre in ["Todos"] + val.QUINTILES:
-            filtro = seleccion if nombre == "Todos" else seleccion & (quintil_fila == nombre)
-            filas.append(
-                {
-                    "metodo": resultado.clave,
-                    "subida_pct": 100 * proporcion,
-                    "quintil": nombre,
-                    "meses_evaluables": int(filtro.sum()),
-                    "detectados": int((filtro & detectado).sum()),
-                    "tasa_deteccion_pct": val.porcentaje((filtro & detectado).sum(), filtro.sum()),
-                }
-            )
+        for periodo, mascara in PERIODOS_INYECCION.items():
+            seleccion = mascaras[mascara] & evaluable
+            for nombre in ["Todos"] + val.QUINTILES:
+                filtro = seleccion if nombre == "Todos" else seleccion & (quintil_fila == nombre)
+                filas.append(
+                    {
+                        "metodo": resultado.clave,
+                        "periodo_inyeccion": periodo,
+                        "subida_pct": 100 * proporcion,
+                        "quintil": nombre,
+                        "meses_evaluables": int(filtro.sum()),
+                        "detectados": int((filtro & detectado).sum()),
+                        "tasa_deteccion_pct": val.porcentaje((filtro & detectado).sum(), filtro.sum()),
+                    }
+                )
     return pd.DataFrame(filas)
+
+
+def umbral_principal(resultado):
+    """El umbral del método; para C, que lo calibra por n, el de 15 cambios."""
+    umbral = np.asarray(resultado.umbral, dtype=float)
+    if umbral.ndim == 0:
+        return float(umbral)
+    return float(np.nanmedian(umbral))
 
 
 def resumen_metodo(resultado, quintil_fila, potencia):
@@ -484,6 +645,7 @@ def resumen_metodo(resultado, quintil_fila, potencia):
     fila = {
         "metodo": resultado.clave,
         "descripcion": resultado.nombre,
+        "umbral": umbral_principal(resultado),
         "segundos_calculo": resultado.segundos,
         "evaluables_calma": int((periodos["calma"] & evaluable).sum()),
         "alertas_calma": int((periodos["calma"] & alerta).sum()),
@@ -499,7 +661,9 @@ def resumen_metodo(resultado, quintil_fila, potencia):
     }
 
     for _, fila_potencia in potencia.loc[potencia["metodo"].eq(resultado.clave)].iterrows():
-        sufijo = "" if fila_potencia["quintil"] == "Todos" else f"_{fila_potencia['quintil']}"
+        sufijo = sufijo_periodo(fila_potencia["periodo_inyeccion"])
+        if fila_potencia["quintil"] != "Todos":
+            sufijo += f"_{fila_potencia['quintil']}"
         fila[f"potencia_{fila_potencia['subida_pct']:g}pct{sufijo}"] = fila_potencia["tasa_deteccion_pct"]
 
     historico = periodos["historico"]
@@ -561,7 +725,7 @@ def tabla_curvas(resultados, umbrales):
         calma = periodos["calma"] & evaluable
         episodio = periodos["mar_jun_2020"] & evaluable
         abril = periodos["abril_2020"] & evaluable
-        inyeccion = periodos["inyeccion"] & evaluable
+        inyeccion = {periodo: periodos[mascara] & evaluable for periodo, mascara in PERIODOS_INYECCION.items()}
         subidas = {
             p: val.subida_en_personas(tabla["paro_mes_anterior"], p).fillna(0).to_numpy() for p in (0.05, 0.10)
         }
@@ -576,7 +740,10 @@ def tabla_curvas(resultados, umbrales):
             }
             for p, subida in subidas.items():
                 detectado = alertas_metodo(resultado, subida, umbral).fillna(False).to_numpy(dtype=bool)
-                fila[f"potencia_{100 * p:g}pct"] = val.porcentaje((inyeccion & detectado).sum(), inyeccion.sum())
+                for periodo, seleccion in inyeccion.items():
+                    fila[f"potencia_{100 * p:g}pct{sufijo_periodo(periodo)}"] = val.porcentaje(
+                        (seleccion & detectado).sum(), seleccion.sum()
+                    )
             filas.append(fila)
     return pd.DataFrame(filas)
 
@@ -600,7 +767,6 @@ COLUMNAS_CASO = [
     "n_cambios",
     "referencia_cambio",
     "escala_robusta",
-    "umbral",
     "cambio_resto_comunidad",
     "prediccion_cambio",
     "prediccion_paro",
@@ -610,10 +776,11 @@ COLUMNAS_CASO = [
 
 def tabla_caso(resultados, alertas):
     """Madrid en octubre de 2026 con cada método: cambio, límite y alerta."""
-    caso = alertas["municipio"].eq(MUNICIPIO_CASO) & alertas["fecha"].eq(FECHA_CASO)
+    caso = (alertas["municipio"].eq(MUNICIPIO_CASO) & alertas["fecha"].eq(FECHA_CASO)).to_numpy()
     filas = []
     for resultado in resultados:
         fila = con_alertas(resultado).loc[caso].iloc[0]
+        umbral = np.broadcast_to(np.asarray(resultado.umbral, dtype=float), caso.shape)[caso][0]
         datos = {
             "metodo": resultado.clave,
             "municipio": fila["municipio"],
@@ -621,18 +788,33 @@ def tabla_caso(resultados, alertas):
             "paro_total": fila["paro_total"],
             "cambio_mensual": fila["cambio_mensual"],
             "evaluacion": fila["evaluacion"],
+            "umbral": umbral,
             "limite_cambio": fila["limite_cambio"],
             "alerta": fila["alerta"],
         }
-        if resultado.clave in ("oficial", "C5"):
-            original = alertas.loc[caso].iloc[0]
-            datos["referencia_cambio"] = original["referencia_cambio"]
-            datos["escala_robusta"] = original["escala_robusta"]
-            datos["umbral"] = resultado.umbral
         for columna in COLUMNAS_CASO:
             if columna in fila.index:
                 datos[columna] = fila[columna]
         filas.append(datos)
+    return pd.DataFrame(filas)
+
+
+def tabla_umbrales_fuera_de_muestra(resultados, tasa_objetivo_pct):
+    """Umbral elegido en 2012-2016 y la tasa que da en esos años."""
+    filas = []
+    for resultado in resultados:
+        pct, evaluables, alertas_seleccion = tasa_alertas(resultado, ANOS_SELECCION)
+        filas.append(
+            {
+                "metodo": resultado.clave,
+                "anos_seleccion": f"{ANOS_SELECCION[0]}-{ANOS_SELECCION[-1]}",
+                "tasa_objetivo_pct": tasa_objetivo_pct,
+                "umbral": umbral_principal(resultado),
+                "evaluables_seleccion": evaluables,
+                "alertas_seleccion": alertas_seleccion,
+                "pct_alertas_seleccion": pct,
+            }
+        )
     return pd.DataFrame(filas)
 
 
@@ -658,12 +840,19 @@ def tabla_criterio(curvas):
     return pd.DataFrame(filas)
 
 
-def clasificar_octubre(oficial, metodo_b_resultado):
-    """Alertas oficiales del mes como «local» o «regional» según B."""
+def clasificar_alertas(oficial, metodo_b_resultado, fecha=None):
+    """Alertas oficiales como «local» o «regional» según B; las de un mes si se indica.
+
+    Local: B también marca el mes (la subida supera lo esperable dado el cambio
+    del resto de la Comunidad). Regional: B no lo marca. El estado oficial no
+    cambia: es una etiqueta de contraste.
+    """
     oficial_tabla = con_alertas(oficial)
     b_tabla = con_alertas(metodo_b_resultado)
-    mes = oficial_tabla["fecha"].eq(FECHA_CLASIFICACION) & oficial_tabla["alerta"].eq(True).fillna(False)
-    tabla = oficial_tabla.loc[mes, ["municipio", "fecha", "paro_total", "cambio_mensual", "limite_cambio"]].rename(
+    seleccion = oficial_tabla["alerta"].eq(True).fillna(False)
+    if fecha is not None:
+        seleccion &= oficial_tabla["fecha"].eq(fecha)
+    tabla = oficial_tabla.loc[seleccion, ["municipio", "fecha", "paro_total", "cambio_mensual", "limite_cambio"]].rename(
         columns={"limite_cambio": "limite_oficial"}
     )
     tabla = tabla.merge(
@@ -698,26 +887,76 @@ def clasificar_octubre(oficial, metodo_b_resultado):
         "sin clasificar (B no evaluable)",
         np.where(tabla["alerta_b"].eq(True).fillna(False), "local", "regional"),
     )
-    return tabla.sort_values("cambio_mensual", ascending=False).reset_index(drop=True)
+    if fecha is not None:
+        return tabla.sort_values("cambio_mensual", ascending=False).reset_index(drop=True)
+    return tabla.sort_values(["municipio", "fecha"]).reset_index(drop=True)
+
+
+# Columnas de la clasificación que se publica para la aplicación.
+COLUMNAS_CLASIFICACION_APP = [
+    "municipio",
+    "fecha",
+    "cambio_mensual",
+    "cambio_resto_comunidad",
+    "prediccion_cambio_b",
+    "limite_b",
+    "puntuacion_b",
+    "clasificacion",
+]
+
+# Métodos alternativos que muestra la ficha de la aplicación, con el nombre de
+# su columna en otros_metodos.csv. C y Cc, con el umbral elegido fuera de
+# muestra: dan un número de alertas comparable al oficial.
+METODOS_APP = {"Cc_fm": "c_centrado", "C_fm": "c_ampliado", "A": "farrington", "B": "local_b"}
+
+
+def tabla_otros_metodos(resultados):
+    """Alerta de cada método alternativo por municipio y mes, en forma compacta:
+    1 alerta, 0 sin alerta, vacío si el método no puede evaluar el mes."""
+    por_clave = {r.clave: r for r in resultados}
+    tabla = por_clave["oficial"].tabla[["municipio", "fecha"]].copy()
+    for clave, columna in METODOS_APP.items():
+        tabla[columna] = alertas_metodo(por_clave[clave]).astype("Int64")
+    return tabla
 
 
 # Figura ---------------------------------------------------------------------
 
-COLORES = {"oficial": val.AZUL, "C5": val.AZUL, "C": val.NARANJA, "A": val.AGUA, "B": AMARILLO}
-MARCADORES = {"oficial": "o", "C5": "D", "C": "o", "A": "o", "B": "o"}
-ETIQUETAS = {"oficial": "Oficial", "C5": "C5", "C": "C", "A": "A", "B": "B"}
+COLORES = {
+    "oficial": val.AZUL,
+    "C5": val.AZUL,
+    "C": val.NARANJA,
+    "Cc": MAGENTA,
+    "A": val.AGUA,
+    "B": AMARILLO,
+    "C_fm": val.NARANJA,
+    "Cc_fm": MAGENTA,
+}
+MARCADORES = {"oficial": "o", "C5": "D", "C": "o", "Cc": "o", "A": "o", "B": "o", "C_fm": "o", "Cc_fm": "o"}
+ETIQUETAS = {
+    "oficial": "Oficial",
+    "C5": "C5",
+    "C": "C",
+    "Cc": "Cc",
+    "A": "A",
+    "B": "B",
+    "C_fm": "C fuera de muestra",
+    "Cc_fm": "Cc fuera de muestra",
+}
+HUECOS = {"C_fm", "Cc_fm"}
+DESPLAZAMIENTOS = {"C_fm": (-8, 8), "Cc_fm": (8, -3), "oficial": (8, -14)}
 
 
-def figura_potencia_frente_a_calma(resumen, curvas, criterio):
+def figura_potencia_frente_a_calma(resumen, curvas):
     plt = val.importar_pyplot()
     from matplotlib.ticker import FuncFormatter
 
     porcentaje_es = FuncFormatter(lambda v, _: f"{v:g} %".replace(".", ","))
-    fig, ejes = plt.subplots(1, 2, figsize=(12, 5.2), sharey=True)
+    fig, ejes = plt.subplots(1, 2, figsize=(12, 5.4), sharey=True)
 
     for eje, subida in zip(ejes, ["5", "10"]):
-        columna = f"potencia_{subida}pct"
-        for metodo in ["oficial", "C", "A", "B"]:
+        columna = f"potencia_{subida}pct_2017_2019"
+        for metodo in ["oficial", "C", "Cc", "A", "B"]:
             curva = curvas.loc[curvas["metodo"].eq(metodo) & curvas["pct_alertas_calma"].gt(0)]
             nombre_curva = "Oficial y C5 (misma referencia)" if metodo == "oficial" else ETIQUETAS[metodo]
             eje.plot(
@@ -725,51 +964,32 @@ def figura_potencia_frente_a_calma(resumen, curvas, criterio):
                 curva[columna],
                 color=COLORES[metodo],
                 lw=1.2,
-                alpha=0.55,
+                alpha=0.6,
                 label=f"{nombre_curva}: al mover el umbral",
             )
         for _, fila in resumen.iterrows():
             metodo = fila["metodo"]
             x, y = fila["pct_alertas_calma"], fila[columna]
+            hueco = metodo in HUECOS
             eje.plot(
                 x,
                 y,
                 marker=MARCADORES[metodo],
                 markersize=8,
                 color=COLORES[metodo],
-                markeredgecolor="white",
-                markeredgewidth=1.2,
+                markerfacecolor="white" if hueco else COLORES[metodo],
+                markeredgecolor=COLORES[metodo] if hueco else "white",
+                markeredgewidth=2 if hueco else 1.2,
                 ls="none",
                 zorder=5,
             )
+            dx, dy = DESPLAZAMIENTOS.get(metodo, (6, 4))
             eje.annotate(
                 ETIQUETAS[metodo],
                 (x, y),
-                xytext=(6, 4),
+                xytext=(dx, dy),
                 textcoords="offset points",
-                fontsize=9,
-                color=val.TINTA,
-                zorder=6,
-            )
-        for _, fila in criterio.loc[criterio["cumple"].eq("sí")].iterrows():
-            x, y = fila["pct_alertas_calma"], fila[columna]
-            eje.plot(
-                x,
-                y,
-                marker="o",
-                markersize=8,
-                markerfacecolor="white",
-                markeredgecolor=COLORES[fila["metodo"]],
-                markeredgewidth=2,
-                ls="none",
-                zorder=5,
-            )
-            eje.annotate(
-                f"{ETIQUETAS[fila['metodo']]} con umbral {fila['umbral']:g}".replace(".", ","),
-                (x, y),
-                xytext=(-8, 8),
-                textcoords="offset points",
-                ha="right",
+                ha="right" if dx < 0 else "left",
                 fontsize=9,
                 color=val.TINTA,
                 zorder=6,
@@ -783,7 +1003,7 @@ def figura_potencia_frente_a_calma(resumen, curvas, criterio):
         eje.set_title(f"Subida del {subida} %", fontsize=11)
         eje.grid(axis="x", color="#e4e3df", lw=0.8)
 
-    ejes[0].set_ylabel("Potencia: meses de 2015-2019 con la subida detectada")
+    ejes[0].set_ylabel("Potencia: meses de 2017-2019 con la subida detectada")
     ejes[0].legend(loc="upper left", fontsize=8)
     fig.suptitle(
         "Potencia frente a falsas alarmas en calma: arriba a la izquierda es mejor",
@@ -795,8 +1015,8 @@ def figura_potencia_frente_a_calma(resumen, curvas, criterio):
     fig.text(
         0.01,
         -0.03,
-        "Puntos llenos: cada método con su umbral por defecto. Punto hueco: el umbral de C que cumple el criterio. "
-        "Líneas: el mismo método con otros umbrales. "
+        "Puntos llenos: cada método con su umbral por defecto. Puntos huecos: umbral elegido en 2012-2016 "
+        "(misma tasa que el oficial en esos años). Líneas: el mismo método con otros umbrales.\n"
         "Fuente: resultados/validacion/resumen_metodos.csv y curvas_metodos.csv",
         fontsize=8,
         color=val.TINTA_SECUNDARIA,
@@ -822,7 +1042,9 @@ def main():
     segundos_calibrado = time.perf_counter() - inicio
     print(f"  {segundos_calibrado:.1f} s")
     val.guardar_csv(umbrales, "umbrales_calibrados.csv")
-    umbrales_n = dict(zip(umbrales["n_cambios"], umbrales["umbral_calibrado"]))
+    de_c = umbrales.loc[umbrales["metodo"].eq("C")]
+    umbrales_n = dict(zip(de_c["n_cambios"], de_c["umbral_calibrado"]))
+    umbral_cc = float(umbrales.loc[umbrales["metodo"].eq("Cc"), "umbral_calibrado"].iloc[0])
 
     print("\nCalculando los métodos:", flush=True)
     oficial = metodo_oficial(alertas)
@@ -839,10 +1061,32 @@ def main():
         nombre="C5. Oficial (5 cambios) con umbral calibrado",
     )
     resultados = [oficial, c5]
-    for funcion, argumentos in [(metodo_c, (paro, umbrales_n)), (metodo_a, (paro,)), (metodo_b, (paro,))]:
+    for funcion, argumentos in [
+        (metodo_c, (paro, umbrales_n)),
+        (metodo_c_centrado, (paro, umbral_cc)),
+        (metodo_a, (paro,)),
+        (metodo_b, (paro,)),
+    ]:
         resultado = funcion(*argumentos)
         print(f"  {resultado.nombre}: {resultado.segundos:.1f} s", flush=True)
         resultados.append(resultado)
+
+    # Umbral fuera de muestra: la tasa del oficial (umbral 3) en 2012-2016.
+    por_clave = {r.clave: r for r in resultados}
+    tasa_objetivo, _, _ = tasa_alertas(oficial, ANOS_SELECCION)
+    fuera_de_muestra = [
+        con_umbral_fuera_de_muestra(
+            por_clave["C"], tasa_objetivo, "C_fm", "C con umbral elegido en 2012-2016 (fuera de muestra)"
+        ),
+        con_umbral_fuera_de_muestra(
+            por_clave["Cc"], tasa_objetivo, "Cc_fm", "Cc con umbral elegido en 2012-2016 (fuera de muestra)"
+        ),
+    ]
+    resultados += fuera_de_muestra
+    val.guardar_csv(
+        tabla_umbrales_fuera_de_muestra([oficial] + fuera_de_muestra, tasa_objetivo),
+        "umbrales_fuera_de_muestra.csv",
+    )
 
     claves = ["municipio", "fecha"]
     for resultado in resultados:
@@ -863,7 +1107,11 @@ def main():
     print("\nComparando:")
     potencia = pd.concat([deteccion_con_subidas(r, quintil_fila) for r in resultados], ignore_index=True)
     resumen = pd.DataFrame([resumen_metodo(r, quintil_fila, potencia) for r in resultados])
-    resumen.insert(3, "segundos_calibrado_umbral", [np.nan, segundos_calibrado, segundos_calibrado, np.nan, np.nan])
+    resumen.insert(
+        4,
+        "segundos_calibrado_umbral",
+        [segundos_calibrado if r.clave in ("C5", "C", "Cc") else np.nan for r in resultados],
+    )
     val.guardar_csv(resumen, "resumen_metodos.csv")
     val.guardar_csv(potencia, "potencia_metodos.csv")
     val.guardar_csv(tabla_coincidencia(resultados), "coincidencia_metodos.csv")
@@ -873,7 +1121,8 @@ def main():
         comparacion[f"alerta_{resultado.clave}"] = alertas_metodo(resultado).to_numpy()
     val.guardar_csv(comparacion, "comparacion_metodos.csv")
 
-    metodos_curva = [r for r in resultados if r.clave != "C5"]
+    # C5, C_fm y Cc_fm son puntos de las curvas del oficial, C y Cc.
+    metodos_curva = [r for r in resultados if r.clave not in ("C5", "C_fm", "Cc_fm")]
     rejilla = np.round(np.concatenate([np.arange(0.5, 10, 0.05), np.arange(10, 60.5, 0.5)]), 2)
     curvas = tabla_curvas(metodos_curva, rejilla)
     val.guardar_csv(curvas, "curvas_metodos.csv")
@@ -884,10 +1133,15 @@ def main():
 
     val.guardar_csv(tabla_caso(resultados, alertas), "madrid_octubre_2026_metodos.csv")
     metodo_b_resultado = next(r for r in resultados if r.clave == "B")
-    val.guardar_csv(clasificar_octubre(oficial, metodo_b_resultado), "clasificacion_octubre_2026.csv")
+    val.guardar_csv(
+        clasificar_alertas(oficial, metodo_b_resultado, FECHA_CLASIFICACION), "clasificacion_octubre_2026.csv"
+    )
+    clasificacion = clasificar_alertas(oficial, metodo_b_resultado)
+    val.guardar_csv(clasificacion[COLUMNAS_CLASIFICACION_APP], "clasificacion_local_regional.csv")
+    val.guardar_csv(tabla_otros_metodos(resultados), "otros_metodos.csv")
 
     print("\nFigura")
-    figura_potencia_frente_a_calma(resumen, curvas, criterio)
+    figura_potencia_frente_a_calma(resumen, curvas)
 
     print(
         f"\nComparación terminada en {time.perf_counter() - inicio_total:.0f} s. "

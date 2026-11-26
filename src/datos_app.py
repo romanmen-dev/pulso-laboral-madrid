@@ -23,6 +23,16 @@ RUTA_PARO_EDAD = PROCESADOS / "paro_edad_mensual.csv"
 RUTA_CONTRATOS = PROCESADOS / "contratos_mensuales.csv"
 RUTA_MAPA = PROCESADOS / "municipios_mapa.geojson"
 
+# Resultados de la validación (src/validar_detector.py y
+# src/comparar_metodos.py; docs/validacion.md).
+VALIDACION = RAIZ / "resultados" / "validacion"
+RUTA_VALIDACION_MENSUAL = VALIDACION / "validacion_mensual.csv"
+RUTA_POTENCIA = VALIDACION / "potencia.csv"
+RUTA_RESUMEN_METODOS = VALIDACION / "resumen_metodos.csv"
+RUTA_CURVAS_METODOS = VALIDACION / "curvas_metodos.csv"
+RUTA_CLASIFICACION = VALIDACION / "clasificacion_local_regional.csv"
+RUTA_OTROS_METODOS = VALIDACION / "otros_metodos.csv"
+
 RUTAS_ORIGINALES = [
     ORIGINALES / "paro_edad_municipio.csv",
     ORIGINALES / "contratos_municipio.csv",
@@ -42,13 +52,57 @@ ARCHIVOS_APP = {
     "paro_edad": RUTA_PARO_EDAD,
     "contratos": RUTA_CONTRATOS,
     "mapa": RUTA_MAPA,
+    "validacion_mensual": RUTA_VALIDACION_MENSUAL,
+    "potencia": RUTA_POTENCIA,
+    "resumen_metodos": RUTA_RESUMEN_METODOS,
+    "curvas_metodos": RUTA_CURVAS_METODOS,
+    "clasificacion": RUTA_CLASIFICACION,
+    "otros_metodos": RUTA_OTROS_METODOS,
 }
+ARCHIVOS_VALIDACION = [
+    "validacion_mensual",
+    "potencia",
+    "resumen_metodos",
+    "curvas_metodos",
+    "clasificacion",
+    "otros_metodos",
+]
 
 COMANDO_DESCARGAR = r".\.venv\Scripts\python.exe .\src\descargar_datos.py"
 COMANDO_COMPROBAR = r".\.venv\Scripts\python.exe .\src\comprobar_datos.py"
 COMANDO_PREPARAR = r".\.venv\Scripts\python.exe .\src\preparar_datos.py"
 COMANDO_DETECTAR = r".\.venv\Scripts\python.exe .\src\detectar_alertas.py"
 COMANDO_MAPA = r".\.venv\Scripts\python.exe .\src\preparar_mapa.py"
+COMANDO_VALIDAR = r".\.venv\Scripts\python.exe .\src\validar_detector.py"
+COMANDO_COMPARAR = r".\.venv\Scripts\python.exe .\src\comparar_metodos.py"
+
+# Etiqueta local/regional de las alertas (método B de docs/validacion.md).
+# Es información de contraste: no cambia el estado oficial de la alerta.
+TIPOS_ALERTA = {"local": "Local", "regional": "Regional"}
+AYUDA_TIPO = (
+    "Se decide con un segundo método, solo como contraste (método B de "
+    "docs/validacion.md). Con los 60 meses anteriores estima cuánto suele "
+    "cambiar el paro del municipio cuando cambia el del resto de la Comunidad. "
+    "Si este mes la subida supera lo esperable en más de 3 veces su dispersión "
+    "habitual, la alerta es local; si no, es regional: el paro sube en línea "
+    "con el conjunto de la Comunidad. El estado oficial de la alerta no cambia."
+)
+
+# Métodos alternativos de la ficha (columnas de otros_metodos.csv), en el
+# orden en que se muestran. C y Cc, con el umbral elegido fuera de muestra.
+OTROS_METODOS = {
+    "c_centrado": "C centrado (propuesta de versión 2)",
+    "c_ampliado": "C ampliado",
+    "farrington": "Farrington (A)",
+    "local_b": "Local frente al resto de la Comunidad (B)",
+}
+AYUDA_OTROS_METODOS = (
+    "Lo que diría cada método alternativo de docs/validacion.md este mes, solo "
+    "como contraste: ninguno sustituye al detector oficial. C y C centrado "
+    "usan 15 cambios (el mismo mes y los contiguos) y un umbral elegido con "
+    "2012-2016; Farrington ajusta una regresión de Poisson al nivel de paro; "
+    "B compara con el resto de la Comunidad."
+)
 
 # Estados del mapa, con las mismas etiquetas que las métricas de la vista general.
 CATEGORIAS_MAPA = {
@@ -134,7 +188,7 @@ def comandos_para_generar_alertas():
     comandos.append(COMANDO_DETECTAR)
     if not RUTA_MAPA.is_file():
         comandos.append(COMANDO_MAPA)
-    return comandos
+    return comandos + [COMANDO_VALIDAR, COMANDO_COMPARAR]
 
 
 def comandos_para_preparar_datos():
@@ -262,6 +316,24 @@ def leer_mapa(ruta=RUTA_MAPA):
     return json.loads(Path(ruta).read_text(encoding="utf-8"))
 
 
+def leer_csv_validacion(ruta, fechas=False):
+    """Un CSV de resultados/validacion/ (o su copia publicada)."""
+    return pd.read_csv(ruta, sep=";", encoding="utf-8-sig", parse_dates=["fecha"] if fechas else False)
+
+
+def leer_clasificacion(ruta=RUTA_CLASIFICACION):
+    """Alertas oficiales clasificadas como local o regional por el método B."""
+    return leer_csv_validacion(ruta, fechas=True)
+
+
+def leer_otros_metodos(ruta=RUTA_OTROS_METODOS):
+    """Alerta de cada método alternativo por municipio y mes (1, 0 o vacío)."""
+    tabla = leer_csv_validacion(ruta, fechas=True)
+    for columna in OTROS_METODOS:
+        tabla[columna] = tabla[columna].astype("Int64")
+    return tabla
+
+
 # ---------------------------------------------------------------
 # Vista general del mes
 # ---------------------------------------------------------------
@@ -290,7 +362,7 @@ def personas_sobre_limite(filas):
     return filas["cambio_mensual"].astype("Float64") - filas["limite_superior"]
 
 
-def tabla_alertas(mes):
+def tabla_alertas(mes, clasificacion=None):
     alertas = mes.loc[mes["estado_detector"].eq("alerta_experimental")].copy()
     alertas["personas_sobre_limite"] = personas_sobre_limite(alertas)
     alertas["grupo_edad_principal"] = [
@@ -310,11 +382,104 @@ def tabla_alertas(mes):
         "variacion_mensual_pct",
         "grupo_edad_principal",
     ]
+    if clasificacion is not None:
+        alertas["tipo"] = [
+            texto_tipo(tipo_alerta(clasificacion, municipio, fecha))
+            for municipio, fecha in zip(alertas["municipio"], alertas["fecha"])
+        ]
+        columnas.insert(1, "tipo")
     return (
         alertas[columnas]
         .sort_values("puntuacion_robusta", ascending=False)
         .reset_index(drop=True)
     )
+
+
+# ---------------------------------------------------------------
+# Etiqueta local/regional y otros métodos
+# ---------------------------------------------------------------
+
+def tipo_alerta(clasificacion, municipio, fecha):
+    """'local', 'regional' o None si la alerta no está clasificada."""
+    filas = clasificacion.loc[
+        clasificacion["municipio"].eq(municipio) & clasificacion["fecha"].eq(fecha), "clasificacion"
+    ]
+    if len(filas) != 1 or filas.iloc[0] not in TIPOS_ALERTA:
+        return None
+    return filas.iloc[0]
+
+
+def texto_tipo(tipo):
+    return TIPOS_ALERTA.get(tipo, "Sin clasificar")
+
+
+def frase_tipos_mes(tabla):
+    """Cuántas alertas del mes son locales, a partir de la columna «tipo»."""
+    n = len(tabla)
+    if n == 0 or "tipo" not in tabla.columns:
+        return None
+    locales = int(tabla["tipo"].eq(TIPOS_ALERTA["local"]).sum())
+    sin_clasificar = int((~tabla["tipo"].isin(list(TIPOS_ALERTA.values()))).sum())
+
+    if n == 1:
+        tipo = tabla["tipo"].iloc[0]
+        if tipo == TIPOS_ALERTA["local"]:
+            frase = "La única alerta de este mes es local: el paro sube más que en el resto de la Comunidad."
+        elif tipo == TIPOS_ALERTA["regional"]:
+            frase = (
+                "La única alerta de este mes es regional: el paro sube en línea con "
+                "el conjunto de la Comunidad."
+            )
+        else:
+            frase = "La única alerta de este mes no se puede clasificar como local o regional."
+        return frase
+
+    if locales == 0 and not sin_clasificar:
+        frase = (
+            f"De las {numero(n)} alertas de este mes, ninguna es local: todas suben "
+            "en línea con el conjunto de la Comunidad."
+        )
+    elif locales == 0:
+        frase = f"De las {numero(n)} alertas de este mes, ninguna es local."
+    elif locales == 1:
+        frase = (
+            f"De las {numero(n)} alertas de este mes, 1 es local: el paro sube más "
+            "que en el resto de la Comunidad."
+        )
+    else:
+        frase = (
+            f"De las {numero(n)} alertas de este mes, {numero(locales)} son locales: "
+            "el paro sube más que en el resto de la Comunidad."
+        )
+    if sin_clasificar:
+        frase += f" {numero(sin_clasificar)} no se pueden clasificar."
+    return frase
+
+
+def frase_tipo(tipo):
+    """Frase de la ficha para una alerta local o regional."""
+    if tipo == "local":
+        return "**Alerta local:** sube más que en el resto de la Comunidad."
+    if tipo == "regional":
+        return "**Alerta regional:** el paro sube en línea con el conjunto de la Comunidad."
+    return None
+
+
+def texto_otros_metodos(otros_metodos, municipio, fecha):
+    """Qué dice cada método alternativo del mes, en una línea."""
+    filas = otros_metodos.loc[otros_metodos["municipio"].eq(municipio) & otros_metodos["fecha"].eq(fecha)]
+    if len(filas) != 1:
+        return None
+    fila = filas.iloc[0]
+    partes = []
+    for columna, nombre in OTROS_METODOS.items():
+        valor = fila[columna]
+        if pd.isna(valor):
+            resultado = "no evaluable"
+        else:
+            resultado = "alerta" if valor == 1 else "sin alerta"
+        partes.append(f"{nombre}: {resultado}")
+    return " · ".join(partes)
 
 
 def tabla_no_evaluables(mes):

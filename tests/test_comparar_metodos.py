@@ -10,6 +10,7 @@ import pandas as pd
 import pytest
 
 import comparar_metodos as cm
+import detectar_alertas as detector
 from test_detector import alterar_despues_de, panel_sintetico
 from validar_detector import alerta_con_subida, mismas_alertas, serie_con_subidas, simular_normal, subida_en_personas
 
@@ -19,6 +20,7 @@ UMBRALES_FIJOS = {n: 3.0 for n in range(cm.MIN_CAMBIOS_C, len(cm.DESFASES_ANUALE
 
 METODOS = {
     "C": lambda paro: cm.metodo_c(paro, UMBRALES_FIJOS),
+    "Cc": lambda paro: cm.metodo_c_centrado(paro, 3.0),
     "A": cm.metodo_a,
     "B": cm.metodo_b,
 }
@@ -106,6 +108,61 @@ def test_umbral_calibrado_da_0135_con_datos_normales(n):
     assert tasa == pytest.approx(cm.P_OBJETIVO, abs=0.00025)
     # Con umbral 3, en cambio, la tasa es mucho mayor.
     assert np.mean(puntuaciones > 3) > 10 * cm.P_OBJETIVO
+
+
+def test_umbral_calibrado_de_c_centrado_da_0135_con_datos_normales():
+    umbral = cm.calibrar_umbral_centrado(repeticiones=1_000_000, semilla=11)
+    puntuaciones = cm.simular_puntuaciones_centrado(1_000_000, semilla=12)
+
+    assert np.mean(puntuaciones > umbral) == pytest.approx(cm.P_OBJETIVO, abs=0.00025)
+
+
+# C centrado ---------------------------------------------------------------
+
+def test_c_centrado_usa_la_referencia_oficial(paro_sintetico):
+    """La referencia de C centrado es la mediana del mismo mes, como el oficial;
+    solo cambia la escala."""
+    centrado = cm.metodo_c_centrado(paro_sintetico, 3.0).tabla
+    oficial = detector.aplicar_detector(paro_sintetico)
+    evaluable = centrado["evaluacion"].eq(cm.EVALUABLE)
+    assert evaluable.sum() > 100
+
+    np.testing.assert_array_equal(
+        centrado.loc[evaluable, "referencia_cambio"].to_numpy(),
+        oficial.loc[evaluable, "referencia_cambio"].to_numpy(),
+    )
+
+
+def test_c_centrado_quita_la_diferencia_entre_meses():
+    """Si los meses contiguos solo difieren en su nivel habitual, centrar
+    devuelve la misma escala que si no difirieran."""
+    rng = np.random.default_rng(5)
+    historicos = rng.normal(0, 10, size=(200, 5, 3))
+    desplazados = historicos + np.array([-500.0, 0.0, 800.0])
+
+    _, escala = cm.referencia_y_escala_centradas(historicos)
+    _, escala_desplazada = cm.referencia_y_escala_centradas(desplazados)
+
+    np.testing.assert_allclose(escala_desplazada, escala)
+
+
+# Umbral fuera de muestra --------------------------------------------------
+
+@pytest.mark.parametrize("metodo", ["C", "Cc"])
+def test_umbral_fuera_de_muestra_solo_usa_los_anos_de_seleccion(metodo):
+    anos = [2011, 2012]
+    original = panel_sintetico(semilla=2026)
+    alterado = alterar_despues_de(original, "2012-12-01", semilla=1)
+
+    resultado = METODOS[metodo](paro_total(original))
+    umbral = cm.umbral_fuera_de_muestra(resultado, 10.0, anos)
+    umbral_con_futuro_cambiado = cm.umbral_fuera_de_muestra(METODOS[metodo](paro_total(alterado)), 10.0, anos)
+
+    assert umbral == umbral_con_futuro_cambiado
+    # Da la mayor tasa que no pasa del objetivo en los años de selección.
+    pct, evaluables, alertas = cm.tasa_alertas(resultado, anos, umbral)
+    assert 0 < pct <= 10.0
+    assert alertas == int(np.floor(0.10 * evaluables + 1e-9))
 
 
 def test_calibrado_reutiliza_la_simulacion_de_la_validacion():

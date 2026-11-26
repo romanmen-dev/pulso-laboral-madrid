@@ -23,6 +23,13 @@ PALETAS = {
         "alerta": "#ec835a",
         "tinta": "#52514e",
         "superficie": "#ffffff",
+        # Pestaña «¿Cómo sabemos que funciona?». Rampa de un solo tono para los
+        # quintiles de tamaño (de menos a más paro) y, en la figura de métodos,
+        # azul para el oficial, verde agua para la propuesta de versión 2 y gris
+        # para los demás, siempre con su nombre al lado. Validadas para
+        # daltonismo frente al fondo de cada modo.
+        "rampa": ["#86b6ef", "#5598e7", "#2a78d6", "#1c5cab", "#104281"],
+        "propuesta": "#1baf7a",
     },
     "oscuro": {
         "serie": "#3987e5",
@@ -32,6 +39,8 @@ PALETAS = {
         "alerta": "#ec835a",
         "tinta": "#c3c2b7",
         "superficie": "#0e1117",
+        "rampa": ["#184f95", "#256abf", "#3987e5", "#6da7ec", "#9ec5f4"],
+        "propuesta": "#199e70",
     },
 }
 
@@ -321,4 +330,163 @@ def figura_cambios(serie, fecha, p):
         zerolinewidth=1.5,
         zerolinecolor=p["tinta"],
     )
+    return fig
+
+
+# ---------------------------------------------------------------
+# ¿Cómo sabemos que funciona?
+# ---------------------------------------------------------------
+
+def figura_alertas_por_mes(tabla, fecha_episodio, anos_calma, p):
+    """Municipios con alerta por mes, con la calma de 2017-2019 sombreada y
+    abril de 2020 marcado."""
+    fig = go.Figure()
+    inicio_calma = f"{anos_calma[0]}-01-01"
+    fin_calma = f"{anos_calma[-1]}-12-31"
+    fig.add_vrect(
+        x0=inicio_calma,
+        x1=fin_calma,
+        fillcolor=p["gris_suave"],
+        opacity=0.35,
+        line_width=0,
+        layer="below",
+        annotation_text=f"Calma {anos_calma[0]}-{anos_calma[-1]}",
+        annotation_position="top left",
+        annotation_font_color=p["tinta"],
+    )
+    fig.add_scatter(
+        x=tabla["fecha"],
+        y=tabla["con_alerta"],
+        mode="lines",
+        line=dict(color=p["serie"], width=2),
+        customdata=tabla["texto"],
+        hovertemplate="%{customdata}<extra></extra>",
+        name="Municipios con alerta",
+    )
+
+    episodio = tabla.loc[tabla["fecha"].eq(fecha_episodio)]
+    if len(episodio):
+        valor = int(episodio["con_alerta"].iloc[0])
+        fig.add_scatter(
+            x=[fecha_episodio],
+            y=[valor],
+            mode="markers",
+            marker=dict(size=12, color=p["alerta"], line=dict(color=p["superficie"], width=2)),
+            hoverinfo="skip",
+            showlegend=False,
+        )
+        fig.add_annotation(
+            x=fecha_episodio,
+            y=valor,
+            text=f"<b>{datos.mes_corto(fecha_episodio)}: {datos.numero(valor)} municipios</b>",
+            showarrow=True,
+            arrowhead=0,
+            ax=60,
+            ay=10,
+            xanchor="left",
+            bgcolor=p["superficie"],
+            borderpad=3,
+        )
+
+    _base(fig, 340)
+    fig.update_xaxes(dtick="M24", tickformat="%Y", hoverformat="%m/%Y")
+    fig.update_yaxes(title_text="Municipios con alerta", rangemode="tozero")
+    return fig
+
+
+def figura_potencia_tamano(tabla, nombres, p):
+    """Subidas detectadas según su tamaño, por quintil de paro del municipio."""
+    fig = go.Figure()
+    series = list(zip(["Q1", "Q2", "Q3", "Q4", "Q5"], p["rampa"])) + [("Todos", p["tinta"])]
+    for quintil, color in series:
+        filas = tabla.loc[tabla["quintil"].eq(quintil)].sort_values("subida_pct")
+        todos = quintil == "Todos"
+        fig.add_scatter(
+            x=filas["subida_pct"],
+            y=filas["tasa_deteccion_pct"],
+            mode="lines+markers",
+            line=dict(color=color, width=3 if todos else 2),
+            marker=dict(size=8, color=color, line=dict(color=p["superficie"], width=1)),
+            name=nombres[quintil],
+            hovertemplate=(
+                "Subida del %{x:,.0f} %: detectada en el %{y:,.1f} % de los meses"
+                f"<extra>{nombres[quintil]}</extra>"
+            ),
+        )
+    _base(fig, 380, leyenda=True)
+    fig.update_layout(margin=dict(l=8, r=8, t=60, b=8))
+    subidas = sorted(tabla["subida_pct"].unique())
+    fig.update_xaxes(
+        tickmode="array",
+        tickvals=subidas,
+        ticktext=[f"{datos.numero(s)} %" for s in subidas],
+        title_text="Subida añadida al cambio de un mes (% del paro del mes anterior)",
+    )
+    fig.update_yaxes(range=[0, 100], ticksuffix=" %", title_text="Meses con la subida detectada")
+    return fig
+
+
+# El oficial y la propuesta quedan muy cerca: sus etiquetas van a lados opuestos.
+POSICION_ETIQUETA_METODO = {
+    "oficial": "bottom right",
+    "Cc_fm": "top left",
+    "C_fm": "middle left",
+    "A": "bottom right",
+    "B": "top left",
+}
+
+
+def figura_metodos(curvas, puntos, columna, curva_de, p):
+    """Potencia frente a alertas en calma de cada método.
+
+    Líneas: cada método al mover su umbral. Puntos: el umbral de cada uno. El
+    oficial en azul, la propuesta de versión 2 en verde agua y los demás en
+    gris, todos con su nombre al lado.
+    """
+    colores = {"oficial": p["serie"], "Cc_fm": p["propuesta"]}
+    fig = go.Figure()
+
+    for _, punto in puntos.iterrows():
+        metodo = punto["metodo"]
+        color = colores.get(metodo, p["gris"])
+        curva = curvas.loc[curvas["metodo"].eq(curva_de[metodo])]
+        fig.add_scatter(
+            x=curva["pct_alertas_calma"],
+            y=curva[columna],
+            mode="lines",
+            line=dict(color=color, width=2 if metodo in colores else 1.2),
+            opacity=0.9 if metodo in colores else 0.6,
+            hoverinfo="skip",
+            showlegend=False,
+        )
+
+    for _, punto in puntos.iterrows():
+        metodo = punto["metodo"]
+        color = colores.get(metodo, p["gris"])
+        fig.add_scatter(
+            x=[punto["pct_alertas_calma"]],
+            y=[punto[columna]],
+            mode="markers+text",
+            marker=dict(size=12, color=color, line=dict(color=p["superficie"], width=2)),
+            text=[f"<b>{punto['nombre']}</b>" if metodo in colores else punto["nombre"]],
+            textposition=POSICION_ETIQUETA_METODO.get(metodo, "top center"),
+            textfont=dict(color=p["tinta"]),
+            name=punto["nombre"],
+            hovertemplate=(
+                f"<b>{punto['nombre']}</b><br>Alertas en calma: %{{x:,.2f}} %"
+                "<br>Subidas detectadas: %{y:,.1f} %<extra></extra>"
+            ),
+            showlegend=False,
+        )
+
+    _base(fig, 440)
+    fig.update_xaxes(
+        type="log",
+        range=[-1.3, 1.5],
+        tickvals=[0.1, 0.2, 0.5, 1, 2, 5, 10, 20],
+        ticktext=["0,1 %", "0,2 %", "0,5 %", "1 %", "2 %", "5 %", "10 %", "20 %"],
+        title_text="Alertas en calma, 2017-2019 (escala logarítmica): menos es mejor",
+        showgrid=True,
+    )
+    fig.update_yaxes(range=[0, 100], ticksuffix=" %", title_text="Subidas detectadas, 2017-2019: más es mejor")
     return fig

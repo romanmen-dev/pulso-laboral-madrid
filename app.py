@@ -4,6 +4,7 @@ import streamlit as st
 from src import datos_app as datos
 from src import graficos_app as graficos
 from src import identidad_app as identidad
+from src import validacion_app as validacion
 
 
 st.set_page_config(
@@ -12,7 +13,12 @@ st.set_page_config(
     layout="wide",
 )
 
-PESTANAS = ["Vista general", "Ficha de municipio", "Cambios frente al límite"]
+PESTANAS = [
+    "Vista general",
+    "Ficha de municipio",
+    "Cambios frente al límite",
+    "¿Cómo sabemos que funciona?",
+]
 
 PERIODOS = {"Últimos 3 años": 36, "Últimos 10 años": 120, "Toda la serie": None}
 
@@ -24,11 +30,12 @@ CONFIG_PLOTLY = {
 }
 
 AVISO = (
-    "**Alertas experimentales, no validadas.** Señalan subidas del paro "
-    "registrado superiores a lo habitual para que se revisen; no explican "
-    "sus causas. La puntuación robusta no es una probabilidad ni una medida "
-    "de gravedad, y la ausencia de alerta no indica que la evolución sea "
-    "favorable."
+    "**Alertas experimentales.** Señalan subidas del paro registrado superiores "
+    "a lo habitual para que se revisen; no explican sus causas. Su comportamiento "
+    "se ha evaluado con datos históricos (pestaña «¿Cómo sabemos que funciona?»), "
+    "pero no hay una lista de anomalías confirmadas con la que medir su acierto. "
+    "La puntuación robusta no es una probabilidad ni una medida de gravedad, y la "
+    "ausencia de alerta no indica que la evolución sea favorable."
 )
 
 # Los contratos se agrupan por el centro de trabajo y cuentan contratos, no
@@ -44,6 +51,10 @@ TEXTO_CONTRATOS = (
 
 ETIQUETAS = {
     "municipio": "Municipio",
+    "tipo": "Tipo",
+    "evaluables": "Municipios evaluables",
+    "con_alerta": "Con alerta",
+    "pct_alertas_evaluables": "% con alerta",
     "fecha": "Mes",
     "paro_total": "Paro registrado",
     "cambio_mensual": "Cambio mensual",
@@ -63,19 +74,25 @@ ETIQUETAS = {
 }
 
 # Anchos en píxeles para que la tabla de alertas, con su casilla de
-# selección, quepa en pantallas de 1440 px.
+# selección y la columna «Tipo», quepa en pantallas de 1440 px.
 ANCHOS = {
-    "municipio": 150,
-    "cambio_mensual": 112,
-    "referencia_cambio": 112,
-    "limite_superior": 108,
-    "personas_sobre_limite": 106,
-    "puntuacion_robusta": 92,
-    "variacion_mensual_pct": 86,
-    "grupo_edad_principal": 160,
+    "municipio": 138,
+    "tipo": 70,
+    "cambio_mensual": 104,
+    "referencia_cambio": 106,
+    "limite_superior": 100,
+    "personas_sobre_limite": 96,
+    "puntuacion_robusta": 80,
+    "variacion_mensual_pct": 68,
+    "grupo_edad_principal": 164,
 }
 
 AYUDAS = {
+    "tipo": (
+        "Local: el paro sube más que en el resto de la Comunidad. Regional: sube "
+        "en línea con el conjunto de la Comunidad. Es una etiqueta de contraste "
+        "(método B): no cambia la alerta."
+    ),
     "cambio_mensual": "Cambio del paro registrado respecto al mes anterior, en personas.",
     "referencia_cambio": (
         "Mediana de los cambios del mismo mes en los cinco años anteriores, "
@@ -124,6 +141,9 @@ FORMATOS = {
     "personas_sobre_limite": personas_1,
     "puntuacion_robusta": lambda v: datos.numero(v, 2),
     "variacion_mensual_pct": datos.porcentaje,
+    "evaluables": datos.numero,
+    "con_alerta": datos.numero,
+    "pct_alertas_evaluables": validacion.porcentaje,
 }
 
 
@@ -151,6 +171,26 @@ def cargar_contratos(ruta, marca_tiempo):
 @st.cache_data(show_spinner="Leyendo el mapa…")
 def cargar_mapa(ruta, marca_tiempo):
     return datos.leer_mapa(ruta)
+
+
+@st.cache_data(show_spinner="Leyendo los resultados de la validación…")
+def cargar_validacion(ruta, marca_tiempo):
+    return datos.leer_csv_validacion(ruta, fechas=False)
+
+
+@st.cache_data(show_spinner="Leyendo los resultados de la validación…")
+def cargar_validacion_con_fechas(ruta, marca_tiempo):
+    return datos.leer_csv_validacion(ruta, fechas=True)
+
+
+@st.cache_data(show_spinner="Leyendo la clasificación local/regional…")
+def cargar_clasificacion(ruta, marca_tiempo):
+    return datos.leer_clasificacion(ruta)
+
+
+@st.cache_data(show_spinner="Leyendo los otros métodos…")
+def cargar_otros_metodos(ruta, marca_tiempo):
+    return datos.leer_otros_metodos(ruta)
 
 
 def cargar_si_existe(ruta, cargar):
@@ -277,7 +317,7 @@ def mapa_del_mes(mes, nombre, fecha, mapa, paleta):
     )
 
 
-def vista_general(alertas, fecha, mapa, paleta):
+def vista_general(alertas, fecha, mapa, paleta, clasificacion):
     mes = datos.filas_mes(alertas, fecha)
     resumen = datos.resumen_mes(mes)
     nombre = datos.nombre_mes(fecha)
@@ -320,11 +360,14 @@ def vista_general(alertas, fecha, mapa, paleta):
     mapa_del_mes(mes, nombre, fecha, mapa, paleta)
 
     st.markdown(f"#### Alertas experimentales de {nombre}")
-    tabla = datos.tabla_alertas(mes)
+    tabla = datos.tabla_alertas(mes, clasificacion)
 
     if tabla.empty:
         st.info("Ningún municipio tiene alerta experimental este mes.")
     else:
+        frase = datos.frase_tipos_mes(tabla)
+        if frase:
+            st.markdown(frase, help=datos.AYUDA_TIPO)
         clave = f"tabla_alertas_{fecha:%Y%m}_{st.session_state.get('version_tabla', 0)}"
         lista = tabla["municipio"].tolist()
         mostrar_tabla(
@@ -404,14 +447,23 @@ def tres_cifras(fila):
         st.caption("Sin límite de alerta: este mes no se puede evaluar con la regla.")
 
 
-def ficha(alertas, fecha, municipio, paro_edad, contratos, paleta):
+def ficha(alertas, fecha, municipio, paro_edad, contratos, paleta, clasificacion, otros_metodos):
     fila = datos.fila_municipio(alertas, municipio, fecha)
 
     st.subheader(f"{municipio} · {datos.nombre_mes(fecha)}")
 
     tipo, texto = datos.frase_estado(fila)
     if tipo == "alerta":
-        st.warning(texto, icon=":material/notification_important:")
+        frase_tipo = None
+        if clasificacion is not None:
+            frase_tipo = datos.frase_tipo(datos.tipo_alerta(clasificacion, municipio, fecha))
+        st.warning(texto + (f"\n\n{frase_tipo}" if frase_tipo else ""), icon=":material/notification_important:")
+        if frase_tipo:
+            st.caption(
+                "La etiqueta local o regional es información de contraste: no cambia el "
+                "estado oficial de la alerta.",
+                help=datos.AYUDA_TIPO,
+            )
     elif tipo == "sin_alerta":
         st.info(texto, icon=":material/remove:")
     else:
@@ -447,6 +499,10 @@ def ficha(alertas, fecha, municipio, paro_edad, contratos, paleta):
 
     with st.expander("Detalle técnico"):
         st.dataframe(datos.detalle_tecnico(fila), hide_index=True, width="stretch")
+        if otros_metodos is not None:
+            texto_otros = datos.texto_otros_metodos(otros_metodos, municipio, fecha)
+            if texto_otros:
+                st.markdown(f"**Otros métodos:** {texto_otros}.", help=datos.AYUDA_OTROS_METODOS)
 
     with st.expander("Ver los datos de los gráficos"):
         mostrar_tabla(datos.tabla_datos_ficha(serie))
@@ -506,6 +562,101 @@ def cambios_frente_al_limite(alertas, fecha, municipio, paleta):
 
     with st.expander("Ver los datos del gráfico"):
         mostrar_tabla(datos.tabla_historial(serie))
+
+
+# ---------------------------------------------------------------
+# ¿Cómo sabemos que funciona?
+# ---------------------------------------------------------------
+
+def como_sabemos_que_funciona(v, paleta):
+    """Validación del detector, leída de los CSV de resultados/validacion/."""
+    st.subheader("¿Cómo sabemos que funciona?")
+    if any(tabla is None for tabla in v.values()):
+        st.info(
+            "Faltan los resultados de la validación. Ejecuta en PowerShell, desde la "
+            "carpeta principal del proyecto:"
+        )
+        st.code(f"{datos.COMANDO_VALIDAR}\n{datos.COMANDO_COMPARAR}", language="powershell")
+        return
+
+    mensual, potencia, resumen = v["validacion_mensual"], v["potencia"], v["resumen_metodos"]
+    st.markdown(
+        "No hay una lista de subidas anómalas confirmadas con la que medir el acierto "
+        "del detector. Por eso se ha comprobado de tres maneras: cuántas alertas da en "
+        "años tranquilos, si reacciona a una crisis conocida y si detecta subidas "
+        "añadidas a mano. Cada mes se compara solo con meses anteriores. El método está en "
+        f"[docs/metodologia.md]({validacion.URL_METODOLOGIA}) y los resultados completos, en "
+        f"[docs/validacion.md]({validacion.URL_VALIDACION})."
+    )
+
+    tabla_meses = validacion.alertas_por_mes(mensual)
+    st.markdown(
+        f"#### Alertas por mes, de {datos.nombre_mes(tabla_meses['fecha'].min())} a "
+        f"{datos.nombre_mes(tabla_meses['fecha'].max())}"
+    )
+    grafico(
+        graficos.figura_alertas_por_mes(
+            tabla_meses, validacion.FECHA_EPISODIO, validacion.ANOS_CALMA, paleta
+        )
+    )
+    st.markdown(validacion.frase_abril_2020(validacion.episodio_abril_2020(mensual)))
+    st.caption(
+        "Municipios con alerta experimental cada mes desde el primero que se puede "
+        "evaluar. El sombreado marca 2017-2019, años sin crisis que sirven para medir "
+        "las alertas en calma."
+    )
+
+    st.markdown("#### ¿Detecta una subida de golpe?")
+    st.markdown(
+        "Se suma a mano al cambio de un mes una subida del 1 %, 2 %, 5 % o 10 % del "
+        "paro del mes anterior, en los meses de 2015 a 2019, y se mira si el detector "
+        "la marca. Como solo cambia ese mes, lo habitual y el límite no cambian."
+    )
+    grafico(graficos.figura_potencia_tamano(validacion.potencia_por_tamano(potencia), validacion.NOMBRES_QUINTIL, paleta))
+    st.caption(
+        "Quintiles de los 179 municipios por su paro medio de 2019. Con una subida del "
+        "0 % se ve la tasa de alertas sin subida añadida."
+    )
+
+    st.markdown("#### Comparación con otros métodos")
+    subida = st.segmented_control(
+        "Tamaño de la subida",
+        ["5 %", "10 %"],
+        default="5 %",
+        required=True,
+        key="subida_metodos",
+    )
+    columna = "potencia_5pct_2017_2019" if subida == "5 %" else "potencia_10pct_2017_2019"
+    grafico(
+        graficos.figura_metodos(
+            validacion.curvas_metodos(v["curvas_metodos"]),
+            validacion.puntos_metodos(resumen),
+            columna,
+            validacion.CURVA_DE,
+            paleta,
+        )
+    )
+    st.markdown(validacion.frase_compromiso(resumen))
+    st.caption(
+        "Puntos: cada método con su umbral. C y C centrado, con el umbral elegido en "
+        "2012-2016 para dar las mismas alertas que el oficial en esos años. Alertas en "
+        "calma y subidas detectadas, en 2017-2019."
+    )
+
+    st.markdown("#### Limitaciones medidas")
+    st.markdown("\n".join(f"- {texto}" for texto in validacion.limitaciones(mensual, resumen, potencia)))
+
+    st.markdown("#### Propuesta para una versión 2")
+    st.markdown(validacion.frase_propuesta_v2(resumen))
+    st.dataframe(validacion.tabla_propuesta_v2(resumen), hide_index=True, width="stretch")
+
+    with st.expander("Ver los datos de los gráficos"):
+        mostrar_tabla(
+            tabla_meses[["fecha", "evaluables", "con_alerta", "pct_alertas_evaluables"]]
+            .sort_values("fecha", ascending=False)
+            .reset_index(drop=True)
+        )
+        st.dataframe(validacion.tabla_potencia_ancha(potencia), hide_index=True, width="stretch")
 
 
 # ---------------------------------------------------------------
@@ -571,19 +722,30 @@ paleta = graficos.paleta(modo_oscuro())
 paro_edad = cargar_si_existe(rutas["paro_edad"], cargar_paro_edad)
 contratos = cargar_si_existe(rutas["contratos"], cargar_contratos)
 mapa = cargar_si_existe(rutas["mapa"], cargar_mapa)
+clasificacion = cargar_si_existe(rutas["clasificacion"], cargar_clasificacion)
+otros_metodos = cargar_si_existe(rutas["otros_metodos"], cargar_otros_metodos)
+resultados_validacion = {
+    "validacion_mensual": cargar_si_existe(rutas["validacion_mensual"], cargar_validacion_con_fechas),
+    "potencia": cargar_si_existe(rutas["potencia"], cargar_validacion),
+    "resumen_metodos": cargar_si_existe(rutas["resumen_metodos"], cargar_validacion),
+    "curvas_metodos": cargar_si_existe(rutas["curvas_metodos"], cargar_validacion),
+}
 
-pestana_general, pestana_ficha, pestana_cambios = st.tabs(
+pestana_general, pestana_ficha, pestana_cambios, pestana_validacion = st.tabs(
     PESTANAS, key="pestana", on_change="rerun"
 )
 
 with pestana_general:
-    vista_general(alertas, fecha, mapa, paleta)
+    vista_general(alertas, fecha, mapa, paleta, clasificacion)
 
 with pestana_ficha:
-    ficha(alertas, fecha, municipio, paro_edad, contratos, paleta)
+    ficha(alertas, fecha, municipio, paro_edad, contratos, paleta, clasificacion, otros_metodos)
 
 with pestana_cambios:
     cambios_frente_al_limite(alertas, fecha, municipio, paleta)
+
+with pestana_validacion:
+    como_sabemos_que_funciona(resultados_validacion, paleta)
 
 st.divider()
 st.caption(
@@ -594,5 +756,6 @@ st.caption(
 )
 st.caption(
     "Proyecto independiente para DATAMAD 2026; no es una herramienta oficial "
-    "de la Comunidad de Madrid. Método y columnas: `docs/contrato_alertas.md`."
+    f"de la Comunidad de Madrid. Método: [docs/metodologia.md]({validacion.URL_METODOLOGIA}). "
+    "Columnas: `docs/contrato_alertas.md`."
 )
