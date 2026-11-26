@@ -20,11 +20,11 @@
 
 Cada mes cambia el paro registrado de los 179 municipios de la Comunidad de Madrid. Pulso Laboral Madrid compara cada cambio con lo habitual en ese municipio y en esa época del año, y señala las subidas que se salen de lo esperable para que se revisen a tiempo. Usa solo datos abiertos y se puede probar en la [aplicación publicada](https://pulso-laboral-madrid.streamlit.app/).
 
-> Las alertas son **experimentales** y todavía no están validadas.
+> Las alertas son **experimentales**. Su comportamiento se ha evaluado con datos históricos ([validación](docs/validacion.md)), pero no hay una lista de anomalías confirmadas con la que medir su acierto.
 
 [Para quién](#para-quién) · [Caso de uso](#caso-de-uso-ilustrativo) · [Cómo funciona](#cómo-funciona) · [Resultados](#resultados) · [Datos](#datos) · [Limitaciones](#limitaciones) · [Instalación](#instalación-y-reproducción) · [Equipo](#equipo)
 
-![Vista general de octubre de 2026 en la aplicación: 15 municipios con alerta experimental, 157 sin alerta y 7 no evaluables, el mapa de los 179 municipios coloreado por estado y la tabla de alertas](docs/capturas/vista_general_octubre_2026.png)
+![Vista general de octubre de 2026 en la aplicación: 15 municipios con alerta experimental, 157 sin alerta y 7 no evaluables, el mapa de los 179 municipios coloreado por estado y la tabla de alertas con su tipo, local o regional](docs/capturas/vista_general_octubre_2026.png)
 
 <p align="center"><em>Vista general de octubre de 2026 en la aplicación: recuento, mapa de municipios y tabla de alertas.</em></p>
 
@@ -41,8 +41,8 @@ Está pensada para estos usuarios potenciales. Todavía no se ha probado con ell
 
 > Ejemplo ilustrativo con los datos reales de octubre de 2026. Muestra cómo se usaría la herramienta; no describe un uso real.
 
-1. **Detectar.** En la vista general de octubre de 2026, Madrid aparece entre los 15 municipios con alerta experimental.
-2. **Abrir la ficha.** Al seleccionar su fila se abre la ficha: el paro subió 2.130 personas, cuando lo habitual en octubre era +61 y el límite de alerta, +826. El grupo con mayor aumento es el de 25 a 44 años (+1.074).
+1. **Detectar.** En la vista general de octubre de 2026, Madrid aparece entre los 15 municipios con alerta experimental. La columna «Tipo» indica que su alerta es regional; solo 2 de las 15 son locales.
+2. **Abrir la ficha.** Al seleccionar su fila se abre la ficha: el paro subió 2.130 personas, cuando lo habitual en octubre era +61 y el límite de alerta, +826. Es una alerta regional: el paro sube en línea con el conjunto de la Comunidad. El grupo con mayor aumento es el de 25 a 44 años (+1.074).
 3. **Contrastar.** La pestaña «Cambios frente al límite» muestra si la subida es aislada o se repite en otros meses. El técnico lo cruza con la información local que conozca. Al final de la ficha, en una sección aparte y plegada, «Contratos registrados en centros de trabajo del municipio», están los contratos del municipio. No se comparan con el paro: se cuentan por centro de trabajo y son contratos, no personas.
 4. **Decidir si investigar.** La alerta no explica la causa: indica que la subida merece una revisión. Investigar o no es una decisión del técnico.
 
@@ -53,7 +53,8 @@ flowchart LR
     A["Portal de Datos Abiertos<br/>de la Comunidad de Madrid"] --> B["Descarga<br/>verificada con SHA-256"]
     B --> C["Preparación<br/>series mensuales"]
     C --> D["Detector<br/>mediana y MAD"]
-    D --> E["Aplicación<br/>Streamlit"]
+    D --> V["Validación<br/>y otros métodos"]
+    V --> E["Aplicación<br/>Streamlit"]
 ```
 
 Cada paso es un script de `src/` (ver [Instalación y reproducción](#instalación-y-reproducción)). La regla del detector, para cada municipio y mes:
@@ -65,7 +66,9 @@ Cada paso es un script de `src/` (ver [Instalación y reproducción](#instalaci�
 
 **Ejemplo: Madrid, octubre de 2026.** El paro subió **+2.130** personas. Lo habitual en octubre (mediana de 2021 a 2025) era +61 y el límite, **+826**, así que se marca como alerta experimental: la subida supera el límite en 1.304 personas.
 
-El método está en [`notebooks/02_detector_inicial.ipynb`](notebooks/02_detector_inicial.ipynb) y el formato de los resultados, en [`docs/contrato_alertas.md`](docs/contrato_alertas.md).
+El método completo, con fórmulas, validación, comparación con otros métodos y limitaciones, está en [`docs/metodologia.md`](docs/metodologia.md), en una página. El formato de los resultados está en [`docs/contrato_alertas.md`](docs/contrato_alertas.md), y el desarrollo inicial, en [`notebooks/02_detector_inicial.ipynb`](notebooks/02_detector_inicial.ipynb).
+
+Cada alerta lleva además una etiqueta de contraste, **local** o **regional**, que no cambia su estado. Es local si el paro sube más que en el resto de la Comunidad y regional si sube en línea con ella. La calcula un segundo método (B) a partir de la relación del municipio con el resto de la Comunidad en los 60 meses anteriores.
 
 ## Resultados
 
@@ -88,7 +91,16 @@ Cifras calculadas sobre la tabla de alertas que usa la aplicación ([`datos/publ
 
 ### Validación
 
-En curso. Roman está evaluando el comportamiento histórico del detector ([`notebooks/03_evaluacion_historica.ipynb`](notebooks/03_evaluacion_historica.ipynb) y [`docs/decisiones.md`](docs/decisiones.md)). Este apartado se completará con sus resultados.
+No hay una lista de anomalías municipales confirmadas, así que se mide el comportamiento del detector, sin información futura, de febrero de 2010 a octubre de 2026. Resultados completos en [`docs/validacion.md`](docs/validacion.md) y resumen en [`docs/metodologia.md`](docs/metodologia.md).
+
+- **Responde a una crisis conocida.** En abril de 2020 saltó la alerta en el 67,5 % de los municipios evaluables (114 de 169), frente al 5,5 % en los abriles de 2017-2019.
+- **Da más alertas en calma de lo nominal.** En 2017-2019, años sin crisis, marca el 5,51 % de los meses, frente al 0,135 % teórico. La causa es estimar la dispersión con solo 5 cambios.
+- **Detecta las subidas grandes en los municipios grandes.** Sumando a mano una subida al cambio de un mes, detecta el 30,3 % de las del 5 % y el 55,4 % de las del 10 %. Con la del 10 %, el 94,8 % en el 20 % de municipios con más paro y el 8,4 % en el 20 % con menos.
+- **No se recomienda todavía otro método.** Se ha comparado con tres alternativas. Con el umbral elegido fuera de muestra, ninguna mejora a la vez las alertas en calma, la respuesta a 2020 y la potencia. La propuesta para una versión 2, «C centrado», da casi las mismas alertas en calma (5,62 % frente a 5,51 %) y detecta más (37,9 % frente a 32,4 % de las subidas del 5 %).
+
+La aplicación lo muestra en la pestaña **«¿Cómo sabemos que funciona?»**: alertas por mes, el episodio de 2020, la potencia por tamaño de municipio, la comparación de métodos y las limitaciones medidas.
+
+![Pestaña «¿Cómo sabemos que funciona?» de la aplicación: alertas por mes de 2010 a 2026 con abril de 2020 marcado, curvas de potencia por tamaño de municipio y comparación de métodos](docs/capturas/como_sabemos_que_funciona.png)
 
 ## Datos
 
@@ -113,7 +125,8 @@ Más detalle en [`docs/fuentes_datos.md`](docs/fuentes_datos.md).
 
 > **Una alerta estadística no demuestra por sí sola un deterioro del mercado laboral ni identifica sus causas: señala una variación que merece ser investigada.**
 
-- Las alertas son experimentales y el umbral de 3 es provisional, pendiente de la validación.
+- Las alertas son experimentales. Tras la validación se mantiene el umbral de 3, que en calma marca un 5,5 % de los meses: una alerta pide revisar el caso, no confirma nada.
+- La etiqueta local/regional también es experimental: depende de un segundo método (B) y no cambia el estado oficial de la alerta.
 - La referencia usa solo cinco cambios, así que su estimación es inestable. Con poca dispersión histórica, la puntuación puede ser alta aunque la subida sea de pocas personas. La puntuación no es una probabilidad ni una medida de gravedad.
 - Los meses con dispersión cero no se pueden evaluar. Se concentran en municipios con poco paro registrado.
 - El método compara el mismo mes de años anteriores, pero no modeliza la tendencia reciente.
@@ -212,13 +225,13 @@ Cada ordenador ejecuta su propia copia de la aplicación.
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-Comprueban el contrato de `datos/publicados/alertas.csv`, el detector con series sintéticas y el mapa, sin necesitar los datos originales; GitHub Actions las ejecuta en cada push y pull request.
+Comprueban el contrato de `datos/publicados/alertas.csv`, el detector, la validación y los métodos alternativos con series sintéticas, el mapa, las huellas de la copia publicada y la propia aplicación, sin necesitar los datos originales; GitHub Actions las ejecuta en cada push y pull request.
 
 ### Datos y reproducibilidad
 
 Los CSV originales y procesados no se incluyen en GitHub: `.gitignore` excluye el contenido de `datos/originales/` y `datos/procesados/`, salvo sus `.gitkeep`. Clonar o actualizar el repositorio descarga el código, y los datos se obtienen con los pasos siguientes, desde la carpeta principal del proyecto.
 
-La única excepción es `datos/publicados/`: una copia versionada de las tablas que lee la aplicación, para poder publicarla (paso 5). La aplicación usa las tablas locales si están todas y, si no, esa copia.
+La única excepción es `datos/publicados/`: una copia versionada de las tablas que lee la aplicación, para poder publicarla (paso 6). La aplicación usa las tablas locales si están todas y, si no, esa copia.
 
 Las páginas de origen están documentadas en `docs/fuentes_datos.md`.
 
@@ -228,7 +241,7 @@ Las páginas de origen están documentadas en `docs/fuentes_datos.md`.
 .\.venv\Scripts\python.exe .\src\ejecutar_todo.py
 ```
 
-Ejecuta en orden los pasos 1 a 5: descarga, comprobación, preparación de las tablas y del mapa, detección y publicación. Se detiene en el primer paso que falle e indica cuál ha sido. Después, conviene ejecutar las pruebas (paso 6). Los apartados siguientes explican cada paso por separado.
+Ejecuta en orden los pasos 1 a 6: descarga, comprobación, preparación de las tablas y del mapa, detección, validación y comparación de métodos, y publicación. Se detiene en el primer paso que falle e indica cuál ha sido. Después, conviene ejecutar las pruebas (paso 7). Los apartados siguientes explican cada paso por separado.
 
 #### 1. Descargar los datos originales
 
@@ -304,21 +317,43 @@ Su formato se describe en `docs/contrato_alertas.md`. Antes de escribirlo,
 comprueba las reglas del contrato y se detiene si alguna falla.
 El archivo no se incluye en GitHub.
 
-#### 5. Publicar los datos de la aplicación
+#### 5. Validar el detector y compararlo con otros métodos
+
+```powershell
+.\.venv\Scripts\python.exe .\src\validar_detector.py
+.\.venv\Scripts\python.exe .\src\comparar_metodos.py
+```
+
+El primero mide el comportamiento del detector oficial sin modificarlo: alertas por mes, falsas alarmas en calma, episodio de 2020, potencia con subidas sintéticas, sensibilidad, municipios pequeños y persistencia. El segundo lo compara con tres métodos alternativos y clasifica cada alerta como local o regional. Escriben CSV y figuras en `resultados/validacion/`. Tardan alrededor de un minuto cada uno y necesitan `matplotlib` y, para una prueba, `statsmodels`, incluidos en `requirements-dev.txt`. Los resultados se explican en `docs/validacion.md` y, en una página, en `docs/metodologia.md`.
+
+#### 6. Publicar los datos de la aplicación
 
 ```powershell
 .\.venv\Scripts\python.exe .\src\publicar_datos.py
 ```
 
-Copia a `datos/publicados/` lo que lee la aplicación (`resultados/alertas.csv`, `paro_edad_mensual.csv`, `contratos_mensuales.csv` y `municipios_mapa.geojson`) y escribe `publicacion.json`, con la fecha de generación, el periodo de los datos, el commit, la atribución de la licencia y las huellas SHA-256 de los originales y de cada archivo. Se detiene si `alertas.csv` es anterior a los datos procesados o si los originales no son la versión revisada. Después hay que hacer commit de `datos/publicados/` para que la aplicación publicada use los datos nuevos. `.gitattributes` hace que Git guarde esa carpeta byte a byte, sin cambiar los finales de línea, para que las huellas sigan siendo válidas.
+Copia a `datos/publicados/` lo que lee la aplicación: `resultados/alertas.csv`, `paro_edad_mensual.csv`, `contratos_mensuales.csv`, `municipios_mapa.geojson` y, de `resultados/validacion/`, los resultados de la validación (`validacion_mensual.csv`, `potencia.csv`, `resumen_metodos.csv`, `curvas_metodos.csv`, `clasificacion_local_regional.csv` y `otros_metodos.csv`).
 
-#### 6. Comprobar con las pruebas
+Escribe también `publicacion.json`, con la fecha de generación, el periodo de los datos, el commit, la atribución de la licencia y las huellas SHA-256 de los originales y de cada archivo. Se detiene si `alertas.csv` es anterior a los datos procesados, si los resultados de la validación son anteriores a `alertas.csv` o si los originales no son la versión revisada.
+
+Después hay que hacer commit de `datos/publicados/` para que la aplicación publicada use los datos nuevos. `.gitattributes` hace que Git guarde esa carpeta byte a byte, sin cambiar los finales de línea, para que las huellas sigan siendo válidas.
+
+#### 7. Comprobar con las pruebas
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-Comprueban la copia de `datos/publicados/`: que `alertas.csv` cumple las reglas de `docs/contrato_alertas.md` y que el mapa tiene exactamente una geometría por municipio. También prueban el detector con series sintéticas: un caso conocido (Madrid, octubre de 2026) y que ningún resultado usa información de meses posteriores. Conviene ejecutarlas antes de hacer commit de `datos/publicados/`. No necesitan los datos originales; GitHub Actions las ejecuta en cada push y pull request, con Python 3.12 y 3.13.
+Comprueban la copia de `datos/publicados/`:
+
+- que `alertas.csv` cumple las reglas de `docs/contrato_alertas.md`;
+- que el mapa tiene exactamente una geometría por municipio;
+- que las huellas de `publicacion.json` coinciden con los archivos;
+- que la clasificación local/regional cubre todas las alertas oficiales.
+
+También prueban con series sintéticas el detector, la validación y los métodos alternativos: un caso conocido (Madrid, octubre de 2026) y que ningún resultado usa información de meses posteriores. Por último, abren la aplicación con `AppTest` de Streamlit, solo con `datos/publicados/`: la vista general, la pestaña «¿Cómo sabemos que funciona?» y las fichas de varios municipios.
+
+Conviene ejecutarlas antes de hacer commit de `datos/publicados/`. No necesitan los datos originales. GitHub Actions las ejecuta en cada push y pull request, con Python 3.12 y 3.13.
 
 #### Revisión de las incidencias de los contratos
 
@@ -338,10 +373,10 @@ Para reproducir la revisión de las incidencias de los contratos (mayo de 2026, 
 | `datos/publicados/` | Copia versionada de los datos que lee la aplicación publicada |
 | `notebooks/` | Exploración y análisis |
 | `src/` | Código reutilizable y scripts de la cadena de datos (`ejecutar_todo.py` la ejecuta entera) |
-| `tests/` | Pruebas automáticas con pytest: contrato de alertas, detector y mapa |
+| `tests/` | Pruebas automáticas con pytest: contrato de alertas, detector, validación, métodos alternativos, mapa, copia publicada y aplicación |
 | `.github/` | Flujo de GitHub Actions que ejecuta las pruebas en cada push y pull request |
-| `resultados/` | Informes de comprobación, registros de descarga, tablas y gráficos |
-| `docs/` | Fuentes y decisiones metodológicas |
+| `resultados/` | Informes de comprobación, registros de descarga, tablas y gráficos; `resultados/validacion/`, los de la validación |
+| `docs/` | Metodología en una página, validación, contrato de alertas, fuentes y decisiones |
 
 Los archivos `.gitkeep` permiten conservar las carpetas vacías en Git.
 

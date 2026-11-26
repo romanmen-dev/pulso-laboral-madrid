@@ -1,7 +1,8 @@
 """Ejecuta toda la cadena de datos, en orden.
 
 Descarga y verifica los originales, los comprueba, prepara las tablas y el
-mapa, detecta las alertas y publica la copia de datos/publicados/. Cada paso
+mapa, detecta las alertas, valida el detector, lo compara con los métodos
+alternativos y publica la copia de datos/publicados/. Cada paso
 es uno de los scripts de src/ y se ejecuta igual que a mano. La cadena se
 detiene en el primer paso que falle e indica cuál ha sido.
 """
@@ -19,6 +20,8 @@ PASOS = [
     ("Preparar las tablas mensuales", "preparar_datos.py"),
     ("Preparar el mapa", "preparar_mapa.py"),
     ("Detectar las alertas", "detectar_alertas.py"),
+    ("Validar el detector", "validar_detector.py"),
+    ("Comparar con los métodos alternativos", "comparar_metodos.py"),
     ("Publicar los datos de la aplicación", "publicar_datos.py"),
 ]
 
