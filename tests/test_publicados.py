@@ -42,6 +42,7 @@ def test_las_huellas_de_publicacion_json_coinciden(publicacion):
         "paro_edad_mensual.csv",
         "contratos_mensuales.csv",
         "municipios_mapa.geojson",
+        "poblacion_15_64.csv",
         "validacion_mensual.csv",
         "potencia.csv",
         "resumen_metodos.csv",

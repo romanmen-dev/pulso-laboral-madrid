@@ -22,6 +22,9 @@ RUTA_PARO_TOTAL = PROCESADOS / "paro_total_mensual.csv"
 RUTA_PARO_EDAD = PROCESADOS / "paro_edad_mensual.csv"
 RUTA_CONTRATOS = PROCESADOS / "contratos_mensuales.csv"
 RUTA_MAPA = PROCESADOS / "municipios_mapa.geojson"
+# Población de 15 a 64 años (src/preparar_poblacion.py): solo para el
+# indicador de contexto de la ficha, no para el detector.
+RUTA_POBLACION = PROCESADOS / "poblacion_15_64.csv"
 
 # Resultados de la validación (src/validar_detector.py y
 # src/comparar_metodos.py; docs/validacion.md).
@@ -52,6 +55,7 @@ ARCHIVOS_APP = {
     "paro_edad": RUTA_PARO_EDAD,
     "contratos": RUTA_CONTRATOS,
     "mapa": RUTA_MAPA,
+    "poblacion": RUTA_POBLACION,
     "validacion_mensual": RUTA_VALIDACION_MENSUAL,
     "potencia": RUTA_POTENCIA,
     "resumen_metodos": RUTA_RESUMEN_METODOS,
@@ -311,6 +315,16 @@ def leer_contratos(ruta=RUTA_CONTRATOS):
         encoding="utf-8-sig",
         parse_dates=["fecha"],
         usecols=["municipio", "fecha", "contratos"],
+    )
+
+
+def leer_poblacion(ruta=RUTA_POBLACION):
+    """Población de 15 a 64 años por municipio y año (censo anual a 1 de enero)."""
+    return pd.read_csv(
+        ruta,
+        sep=";",
+        encoding="utf-8-sig",
+        usecols=["municipio", "anio", "poblacion_15_64"],
     )
 
 
@@ -597,6 +611,51 @@ def avisos_contratos(municipio, serie_contratos):
         avisos.append(AVISO_CONTRATOS_REPETIDOS)
 
     return avisos
+
+
+NOTA_PARO_POBLACION = (
+    "Indicador de contexto, no la tasa de paro oficial (que se calcula sobre la "
+    "población activa). El paro incluye a todos los inscritos, también a los de "
+    "65 o más."
+)
+SIN_POBLACION = "No disponible: la población por edad empieza en 2021."
+
+
+def poblacion_del_mes(poblacion, municipio, fecha):
+    """Población de 15 a 64 años que se usa en un mes, sin información futura.
+
+    La población a 1 de enero de un año se usa para los meses de ese año; los
+    meses posteriores al último año publicado usan ese último año. Devuelve
+    (año, población) o None si el mes es anterior al primer año del censo.
+    """
+    filas = poblacion.loc[
+        poblacion["municipio"].eq(municipio) & poblacion["anio"].le(fecha.year)
+    ]
+    if filas.empty:
+        return None
+    fila = filas.loc[filas["anio"].idxmax()]
+    return int(fila["anio"]), int(fila["poblacion_15_64"])
+
+
+def paro_por_1000(paro, poblacion):
+    return 1000 * paro / poblacion
+
+
+def texto_paro_poblacion(fila, poblacion):
+    """(etiqueta, valor) del indicador de contexto de la ficha."""
+    dato = poblacion_del_mes(poblacion, fila["municipio"], fila["fecha"])
+    if dato is None:
+        return (
+            "Paro registrado por cada 1.000 habitantes de 15 a 64 años",
+            SIN_POBLACION,
+        )
+    anio, habitantes = dato
+    etiqueta = (
+        "Paro registrado por cada 1.000 habitantes de 15 a 64 años "
+        f"(población del censo anual a 1 de enero de {anio})"
+    )
+    valor = numero(paro_por_1000(fila["paro_total"], habitantes), decimales=1)
+    return etiqueta, valor
 
 
 def tabla_datos_ficha(serie):

@@ -55,6 +55,23 @@ FUENTES = [
             "f346b23de90aa1715920ccafb7b2c902"
         ),
     },
+    # Población censada por edad quinquenal, nacionalidad y sexo a 1 de
+    # enero (Censo de Población Anual del INE, 2021-2025). Solo para el
+    # indicador de contexto de la ficha; no interviene en el detector.
+    {
+        "archivo": "poblacion_censo_anual_edad.csv",
+        "url": (
+            "https://datos.comunidad.madrid/dataset/"
+            "0a14fbfe-783e-4de3-81b1-ff3792bfd402/"
+            "resource/bab16922-8df1-49b5-9791-aed4edf8ced1/"
+            "download/poblacion-censada-por-edad-nacionalidad-y-sexo."
+            "-censo-anual.-municipios.csv"
+        ),
+        "sha256": (
+            "9a8087ab860803241ffe77903c9d306b"
+            "c37cad4a2ca2d3814454960bc6dbedde"
+        ),
+    },
     # Límites municipales del Geoportal IDEM (WFS). Se pide en CSV porque
     # su contenido es estable entre descargas; el GeoJSON incluye la hora
     # de la petición y su huella cambiaría cada vez.

@@ -1,14 +1,14 @@
 {
-  "generado": "2026-11-26T12:00:11+01:00",
+  "generado": "2026-11-26T15:27:11+01:00",
   "datos_desde": "2005-01",
   "datos_hasta": "2026-10",
-  "commit": "5f78134e1086f3ebcc699b03c5342d8ce9f5a794",
+  "commit": "29a61a326f70637c382dabcffda1b06a5a0e5cb9",
   "cadena_con_cambios_sin_commit": false,
   "atribucion": {
-    "fuente": "Comunidad de Madrid. Portal de Datos Abiertos (datos.comunidad.madrid). Fuente de los datos: D. G. del Servicio Público de Empleo. Límites municipales: Información geográfica de la Comunidad de Madrid (Geoportal IDEM).",
+    "fuente": "Comunidad de Madrid. Portal de Datos Abiertos (datos.comunidad.madrid). Fuente de los datos: D. G. del Servicio Público de Empleo. Población: Censo de Población Anual, INE. Límites municipales: Información geográfica de la Comunidad de Madrid (Geoportal IDEM).",
     "licencia": "CC BY 4.0",
     "url_licencia": "https://creativecommons.org/licenses/by/4.0/legalcode.es",
-    "modificaciones": "Datos transformados por Pulso Laboral Madrid: series mensuales, nombres de municipio armonizados, alertas experimentales calculadas y límites municipales simplificados."
+    "modificaciones": "Datos transformados por Pulso Laboral Madrid: series mensuales, nombres de municipio armonizados, alertas experimentales calculadas, población de 15 a 64 años agregada por municipio y límites municipales simplificados."
   },
   "originales": [
     {
@@ -28,6 +28,12 @@
       "sha256": "5f4ee945313b87ae6e6991fbe54e3ea0f346b23de90aa1715920ccafb7b2c902",
       "pagina": "https://datos.comunidad.madrid/dataset/municipio_comunidad_madrid",
       "url": "https://datos.comunidad.madrid/dataset/0781c37e-bc64-4143-8029-18865bedbc3d/resource/48010e29-caa0-46c5-ab6e-f498b2dc042f/download/municipio_comunidad_madrid.csv"
+    },
+    {
+      "archivo": "poblacion_censo_anual_edad.csv",
+      "sha256": "9a8087ab860803241ffe77903c9d306bc37cad4a2ca2d3814454960bc6dbedde",
+      "pagina": "https://datos.comunidad.madrid/dataset/poblacion_censada_por_edad_nacionalidad_y_sexo",
+      "url": "https://datos.comunidad.madrid/dataset/0a14fbfe-783e-4de3-81b1-ff3792bfd402/resource/bab16922-8df1-49b5-9791-aed4edf8ced1/download/poblacion-censada-por-edad-nacionalidad-y-sexo.-censo-anual.-municipios.csv"
     },
     {
       "archivo": "limites_municipales_idem.csv",
@@ -64,6 +70,13 @@
       "bytes": 282040,
       "filas": 179,
       "sha256": "62356bf3dfba35900c23a7e38a1e731adeeb70bb85eedb368177ac796c45befa"
+    },
+    {
+      "archivo": "poblacion_15_64.csv",
+      "origen": "datos/procesados/poblacion_15_64.csv",
+      "bytes": 29237,
+      "filas": 895,
+      "sha256": "8f3c38bf304268815f92300432b296413aa9cd6c824cc4a3663503afdf91e82c"
     },
     {
       "archivo": "validacion_mensual.csv",

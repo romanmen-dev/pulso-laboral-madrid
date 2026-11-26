@@ -19,6 +19,7 @@ PASOS = [
     ("Comprobar los originales", "comprobar_datos.py"),
     ("Preparar las tablas mensuales", "preparar_datos.py"),
     ("Preparar el mapa", "preparar_mapa.py"),
+    ("Preparar la población de 15 a 64 años", "preparar_poblacion.py"),
     ("Detectar las alertas", "detectar_alertas.py"),
     ("Validar el detector", "validar_detector.py"),
     ("Comparar con los métodos alternativos", "comparar_metodos.py"),

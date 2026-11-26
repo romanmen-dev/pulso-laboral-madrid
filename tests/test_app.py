@@ -120,3 +120,25 @@ def test_ficha_de_municipio(app, municipio, esperado):
     assert any(s.value == f"{municipio} · octubre de 2026" for s in app.subheader)
     assert contiene(app, esperado)
     assert contiene(app, "**Otros métodos:**")
+
+
+def test_ficha_paro_por_1000_habitantes(app):
+    app.selectbox(key="municipio").set_value("Madrid").run()
+    sin_errores(app)
+    assert contiene(
+        app,
+        "**Paro registrado por cada 1.000 habitantes de 15 a 64 años "
+        "(población del censo anual a 1 de enero de 2025):**",
+    )
+    assert contiene(app, "Indicador de contexto, no la tasa de paro oficial")
+    assert contiene(app, "también a los de 65 o más")
+
+
+def test_ficha_sin_poblacion_antes_de_2021(app):
+    import pandas as pd
+
+    app.selectbox(key="municipio").set_value("Madrid").run()
+    app.selectbox(key="mes").set_value(pd.Timestamp("2020-12-01")).run()
+    sin_errores(app)
+    assert any(s.value == "Madrid · diciembre de 2020" for s in app.subheader)
+    assert contiene(app, "No disponible: la población por edad empieza en 2021.")
