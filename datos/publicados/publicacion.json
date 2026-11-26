@@ -1,9 +1,9 @@
 {
-  "generado": "2026-11-26T10:54:33+01:00",
+  "generado": "2026-11-26T11:10:01+01:00",
   "datos_desde": "2005-01",
   "datos_hasta": "2026-10",
-  "commit": "e3b41cd0138d8b80c33e9e30694c1c4ffcd1673c",
-  "cadena_con_cambios_sin_commit": true,
+  "commit": "bae7cce0c123b762259371dfe67eccc6f161e23f",
+  "cadena_con_cambios_sin_commit": false,
   "atribucion": {
     "fuente": "Comunidad de Madrid. Portal de Datos Abiertos (datos.comunidad.madrid). Fuente de los datos: D. G. del Servicio Público de Empleo. Límites municipales: Información geográfica de la Comunidad de Madrid (Geoportal IDEM).",
     "licencia": "CC BY 4.0",
